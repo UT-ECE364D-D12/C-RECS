@@ -1,0 +1,13 @@
+--prefer-binary
+--extra-index-url https://download.pytorch.org/whl/cu118
+--extra-index-url https://jllllll.github.io/bitsandbytes-windows-webui
+torch==2.2.1+cu118
+bitsandbytes==0.40.2
+peft==0.4.0
+numpy
+scikit-learn
+transformers
+sentencepiece
+protobuf
+datasets
+ipykernel
