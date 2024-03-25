@@ -5,6 +5,7 @@ torch==2.2.1+cu118
 bitsandbytes==0.40.2
 peft==0.4.0
 numpy
+pandas
 scikit-learn
 transformers
 sentencepiece
