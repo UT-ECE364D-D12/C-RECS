@@ -1,0 +1,23 @@
+name: cers
+channels:
+  - conda-forge
+  - pytorch
+  - nvidia
+dependencies:
+  - python==3.10
+  - pip
+  - pytorch
+  - pytorch-cuda=11.8
+  - bitsandbytes
+  - peft
+  - numpy
+  - pandas
+  - scikit-learn
+  - transformers
+  - sentencepiece
+  - protobuf
+  - datasets
+  - ipykernel
+  - tqdm
+  - pip:
+    - tensorboard
