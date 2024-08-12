@@ -20,6 +20,7 @@ dependencies:
   - datasets
   - ipykernel
   - tqdm
+  - pytables
   - pip:
     - tensorboard
     - flash-attn
