@@ -7,9 +7,6 @@ A pytorch implementation of DeepFM for rates prediction problem.
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
-
-from time import time
 
 
 class DeepFM(nn.Module):
