@@ -17,6 +17,7 @@ dependencies:
   - transformers
   - sentencepiece
   - protobuf
+  - wandb
   - datasets
   - ipykernel
   - tqdm
