@@ -81,7 +81,7 @@ class FactorizationMachine(torch.nn.Module):
 
 class MultiLayerPerceptron(torch.nn.Module):
 
-    def __init__(self, input_dim, embed_dims, dropout, output_layer=True):
+    def __init__(self, input_dim, embed_dims, dropout, output_dim=1):
         super().__init__()
         layers = list()
         for embed_dim in embed_dims:
@@ -90,8 +90,8 @@ class MultiLayerPerceptron(torch.nn.Module):
             layers.append(torch.nn.ReLU())
             layers.append(torch.nn.Dropout(p=dropout))
             input_dim = embed_dim
-        if output_layer:
-            layers.append(torch.nn.Linear(input_dim, 1))
+        layers.append(torch.nn.Linear(input_dim, output_dim))
+        
         self.mlp = torch.nn.Sequential(*layers)
 
     def forward(self, x):

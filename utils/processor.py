@@ -1,8 +1,8 @@
-import wandb
 from torch import nn, optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+import wandb
 from utils.loss import Criterion
 
 
@@ -34,7 +34,6 @@ def train_one_epoch(
 
         loss.backward()
         optimizer.step()
-        
 
 def evaluate_one_epoch(
     model: nn.Module,
