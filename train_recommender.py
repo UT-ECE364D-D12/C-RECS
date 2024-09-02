@@ -26,7 +26,7 @@ optimizer = optim.AdamW(model.parameters(), lr=0.001)
 
 criterion = RecommenderCriterion()
 
-wandb.init(project="MovieLens", name="DeepFM Dropout", tags=("Recommender"), config={"model": "DeepFM", "optimizer": "AdamW", "lr": 0.001, "Dropout": 0.8, "loss": "MSE"})
+wandb.init(project="MovieLens", name="DeepFM Dropout", tags=("Recommender",), config={"model": "DeepFM", "optimizer": "AdamW", "lr": 0.001, "Dropout": 0.8, "loss": "MSE"})
 
 train(
     model=model,

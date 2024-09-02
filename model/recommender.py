@@ -18,7 +18,7 @@ class DeepFM(nn.Module):
         self.fm = FactorizationMachine(reduce_sum=True)
         self.embedding = FeaturesEmbedding(feature_dims, embed_dim)
         self.embed_output_dim = len(feature_dims) * embed_dim
-        self.mlp = MultiLayerPerceptron(self.embed_output_dim, mlp_dims, dropout)
+        self.mlp = MultiLayerPerceptron(input_dim=self.embed_output_dim, hidden_dims=mlp_dims, output_dim=1, dropout=dropout)
 
     def forward(self, x: Tensor) -> Tensor:
         """

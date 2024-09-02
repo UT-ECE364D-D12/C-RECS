@@ -26,7 +26,7 @@ def train_one_epoch(
 
         batch_losses = criterion(predictions, targets)
 
-        wandb.log({"Train": batch_losses}, step=wandb.run.step + len(targets))
+        wandb.log({"Train": {"Loss": batch_losses}}, step=wandb.run.step + len(targets))
 
         losses = {k: losses.get(k, 0) + v.item() for k, v in batch_losses.items()}
         
@@ -54,7 +54,7 @@ def evaluate_one_epoch(
 
         losses = {k: losses.get(k, 0) + v.item() for k, v in batch_losses.items()}
 
-    wandb.log({"Validation": losses}, step=wandb.run.step)
+    wandb.log({"Validation": {"Loss": losses}}, step=wandb.run.step)
         
 def train(
     model: nn.Module,

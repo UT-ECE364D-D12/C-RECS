@@ -1,6 +1,9 @@
+from typing import List
+
 import numpy as np
 import torch
 import torch.nn.functional as F
+from torch import Tensor
 
 
 class FeaturesLinear(torch.nn.Module):
@@ -40,9 +43,7 @@ class FieldAwareFactorizationMachine(torch.nn.Module):
     def __init__(self, field_dims, embed_dim):
         super().__init__()
         self.num_fields = len(field_dims)
-        self.embeddings = torch.nn.ModuleList([
-            torch.nn.Embedding(sum(field_dims), embed_dim) for _ in range(self.num_fields)
-        ])
+        self.embeddings = torch.nn.ModuleList([torch.nn.Embedding(sum(field_dims), embed_dim) for _ in range(self.num_fields)])
         self.offsets = np.array((0, *np.cumsum(field_dims)[:-1]), dtype=np.int32)
         for embedding in self.embeddings:
             torch.nn.init.xavier_uniform_(embedding.weight.data)
@@ -81,20 +82,20 @@ class FactorizationMachine(torch.nn.Module):
 
 class MultiLayerPerceptron(torch.nn.Module):
 
-    def __init__(self, input_dim, embed_dims, dropout, output_dim=1):
+    def __init__(self, input_dim: int, hidden_dims: List[int], output_dim: int, dropout: float):
         super().__init__()
         layers = list()
-        for embed_dim in embed_dims:
-            layers.append(torch.nn.Linear(input_dim, embed_dim))
-            layers.append(torch.nn.BatchNorm1d(embed_dim))
+        for dim in hidden_dims:
+            layers.append(torch.nn.Linear(input_dim, dim))
+            layers.append(torch.nn.BatchNorm1d(dim))
             layers.append(torch.nn.ReLU())
             layers.append(torch.nn.Dropout(p=dropout))
-            input_dim = embed_dim
+            input_dim = dim
         layers.append(torch.nn.Linear(input_dim, output_dim))
         
         self.mlp = torch.nn.Sequential(*layers)
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         """
         :param x: Float tensor of size ``(batch_size, embed_dim)``
         """
