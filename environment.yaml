@@ -23,5 +23,4 @@ dependencies:
   - tqdm
   - pytables
   - pip:
-    - tensorboard
     - flash-attn
