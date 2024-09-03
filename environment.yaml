@@ -17,10 +17,11 @@ dependencies:
   - transformers
   - sentencepiece
   - protobuf
+  - wandb
   - datasets
   - ipykernel
   - tqdm
   - pytables
+  - torchmetrics
   - pip:
-    - tensorboard
     - flash-attn
