@@ -25,19 +25,19 @@ train_requests, test_requests = train_test_split(request, train_size=0.8)
 
 train_dataset, test_dataset = EncoderDataset(train_requests), EncoderDataset(test_requests)
 
-train_dataloader, test_dataloader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=4), DataLoader(test_dataset, batch_size=128, num_workers=4)
+train_dataloader, test_dataloader = DataLoader(train_dataset, batch_size=100, shuffle=True, num_workers=4, drop_last=True), DataLoader(test_dataset, batch_size=100, num_workers=4, drop_last=True)
 
 encoder = Encoder().to(device)
 
-expander = build_expander(embed_dim=768).to(device)
+expander = build_expander(embed_dim=768, width=2).to(device)
 
 optimizer = optim.AdamW(list(encoder.parameters()) + list(expander.parameters()), lr=0.0001)
 
-loss_weights = {"triplet": 5.0, "variance": 0.8, "invariance": 0.8, "covariance": 0.00008}
+loss_weights = {"triplet": 5.0, "variance": 0.8, "invariance": 0.8, "covariance": 0.0008}
 
 criterion = EncoderCriterion(expander, loss_weights=loss_weights)
 
-wandb.init(project="MovieLens", name="VICReg Batch Size=128", tags=("Encoder",), config={"model": "Encoder", "optimizer": "AdamW", "lr": 0.0001, "loss_weights": loss_weights})
+wandb.init(project="MovieLens", name="VICReg ", tags=("Encoder",), config={"model": "Encoder", "optimizer": "AdamW", "lr": 0.0001, "loss_weights": loss_weights, "batch_size": 100})
 
 train_encoder(
     model=encoder,
