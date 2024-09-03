@@ -33,9 +33,8 @@ class DecoderDataset(Dataset):
         return torch.tensor(request), torch.tensor(movie_id - 1)
     
 class EncoderDataset(Dataset):
-    def __init__(self, data: pd.DataFrame, tokenizer: BertTokenizer) -> None:
+    def __init__(self, data: pd.DataFrame) -> None:
         self.data = data
-        self.tokenizer = tokenizer
         
         self.num_movies = len(self.data)
         self.num_samples_per_movie = len(self.data["request"].iloc[0])
@@ -43,8 +42,8 @@ class EncoderDataset(Dataset):
     def __len__(self) -> int:
         return self.num_movies * self.num_samples_per_movie
     
-    def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor, Tensor]:
-        movie_idx, request_idx = divmod(idx, len(self.data))
+    def __getitem__(self, idx: int) -> Tuple[str, str, str]:
+        request_idx, movie_idx = divmod(idx, len(self.data))
 
         requests = self.data.iloc[movie_idx]["request"]
 
@@ -58,7 +57,7 @@ class EncoderDataset(Dataset):
 
         negative_request = random.choice(self.data.iloc[negative_movie_idx]["request"])
 
-        return torch.tensor(anchor_request), torch.tensor(positive_request), torch.tensor(negative_request)
+        return anchor_request, positive_request, negative_request
 
 def get_feature_sizes(ratings: pd.DataFrame) -> Tuple[int, ...]:
     return ratings["user_id"].nunique(), ratings["movie_id"].nunique()

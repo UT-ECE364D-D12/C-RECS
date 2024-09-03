@@ -68,7 +68,6 @@ class EncoderCriterion(Criterion):
     def forward(self, anchor: Tensor, positive: Tensor, negative: Tensor) -> Dict[str, Tensor]:
         triplet_loss = self._get_triplet_loss(anchor, positive, negative)
 
-        # Expand the embeddings to ensure VICReg doesn't remove complex interactions
         anchor, positive, negative = self.expander(anchor), self.expander(positive), self.expander(negative)
 
         variance_loss = (self._get_variance_loss(anchor) + self._get_variance_loss(positive) + self._get_variance_loss(negative)) / 3

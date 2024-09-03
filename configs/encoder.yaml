@@ -1,0 +1,5 @@
+loss_weights:
+  triplet: 1.0
+  variance: 0.0
+  invariance: 0.0
+  covariance: 0.0

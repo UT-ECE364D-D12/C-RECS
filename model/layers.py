@@ -82,7 +82,7 @@ class FactorizationMachine(torch.nn.Module):
 
 class MultiLayerPerceptron(torch.nn.Module):
 
-    def __init__(self, input_dim: int, hidden_dims: List[int], output_dim: int, dropout: float):
+    def __init__(self, input_dim: int, hidden_dims: List[int], output_dim: int, dropout: float = 0.0):
         super().__init__()
         layers = list()
         for dim in hidden_dims:
