@@ -9,7 +9,7 @@ from model.layers import MultiLayerPerceptron
 
 
 class Encoder(nn.Module):
-    def __init__(self) -> None:
+    def __init__(self, **kwargs) -> None:
         super().__init__()
 
         loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
@@ -18,7 +18,7 @@ class Encoder(nn.Module):
                 logger.setLevel(logging.ERROR)
                 
         self.tokenizer: BertTokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-        self.model: BertModel = BertModel.from_pretrained("bert-base-uncased")
+        self.model: BertModel = BertModel.from_pretrained("bert-base-uncased", **kwargs)
     
     def forward(self, requests: List[str]) -> Tensor:
         encoder_tokens = self.tokenizer(requests, padding=True, return_tensors="pt").to(self.model.device)

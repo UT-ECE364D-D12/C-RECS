@@ -27,9 +27,9 @@ train_dataset, test_dataset = EncoderDataset(train_requests), EncoderDataset(tes
 
 train_dataloader, test_dataloader = DataLoader(train_dataset, batch_size=100, shuffle=True, num_workers=4, drop_last=True), DataLoader(test_dataset, batch_size=100, num_workers=4, drop_last=True)
 
-encoder = Encoder().to(device)
+encoder = Encoder(hidden_dropout_prob=0.8).to(device)
 
-expander = build_expander(embed_dim=768, width=2).to(device)
+expander = build_expander(embed_dim=768, width=2, dropout=0.8).to(device)
 
 optimizer = optim.AdamW(list(encoder.parameters()) + list(expander.parameters()), lr=0.0001)
 
@@ -37,7 +37,7 @@ loss_weights = {"triplet": 5.0, "variance": 0.8, "invariance": 0.8, "covariance"
 
 criterion = EncoderCriterion(expander, loss_weights=loss_weights)
 
-wandb.init(project="MovieLens", name="VICReg ", tags=("Encoder",), config={"model": "Encoder", "optimizer": "AdamW", "lr": 0.0001, "loss_weights": loss_weights, "batch_size": 100})
+wandb.init(project="MovieLens", name="VICReg Dropout=0.8", tags=("Encoder",), config={"model": "Encoder", "optimizer": "AdamW", "lr": 0.0001, "loss_weights": loss_weights, "batch_size": 100})
 
 train_encoder(
     model=encoder,
