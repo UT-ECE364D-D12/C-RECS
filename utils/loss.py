@@ -11,16 +11,16 @@ class Criterion(nn.Module):
     def __init__(self) -> None:
         super().__init__()
     
-    def forward(self, predictions: Tensor, targets: Tensor) -> Dict[str, Tensor]:
+    def forward(self, *args) -> Dict[str, Tensor]:
         raise NotImplementedError
     
-    def __call__(self, predictions: Tensor, targets: Tensor) -> Dict[str, Tensor]:
-        return super().__call__(predictions, targets)
+    def __call__(self, *args) -> Dict[str, Tensor]:
+        return super().__call__(*args)
 
     def reset_metrics(self) -> None:
         return
     
-    def update_metrics(self, predictions: Tensor, targets: Tensor) -> None:
+    def update_metrics(self, *args) -> None:
         return
 
     def get_metrics(self) -> Dict[str, Tensor]:
@@ -91,7 +91,7 @@ class EncoderCriterion(Criterion):
         distance_ap = cosine_distance(anchor, positive)
         distance_an = cosine_distance(anchor, negative)
 
-        return F.relu(distance_ap - distance_an + self.margin)
+        return F.relu(distance_ap - distance_an + self.margin).mean()
 
     def _get_variance_loss(self, x: Tensor) -> Tensor:     
         """

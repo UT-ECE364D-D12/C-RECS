@@ -43,7 +43,7 @@ class EncoderDataset(Dataset):
         return self.num_movies * self.num_samples_per_movie
     
     def __getitem__(self, idx: int) -> Tuple[str, str, str]:
-        request_idx, movie_idx = divmod(idx, len(self.data))
+        movie_idx, request_idx = divmod(idx, self.num_samples_per_movie)
 
         requests = self.data.iloc[movie_idx]["request"]
 

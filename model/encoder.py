@@ -25,7 +25,7 @@ class Encoder(nn.Module):
 
         batch_encoded_requests = self.model(**encoder_tokens)
 
-        encoded_requests = torch.stack([hidden_state[0] for hidden_state in batch_encoded_requests.last_hidden_state])
+        encoded_requests = batch_encoded_requests.last_hidden_state[:, 0]
 
         return encoded_requests
 
