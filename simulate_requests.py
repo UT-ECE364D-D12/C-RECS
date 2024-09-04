@@ -1,3 +1,5 @@
+import argparse
+from typing import List, Callable
 import pandas as pd
 import torch
 from torch.utils.data import DataLoader, Dataset
@@ -5,7 +7,15 @@ from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer, BertModel, BertTokenizer, BitsAndBytesConfig, MistralForCausalLM
 import logging
 
-def load_language_model(model_name: str = "google/gemma-7b-it") -> tuple[AutoModelForCausalLM, AutoTokenizer]:
+# parse arguments for path to dataset
+parser = argparse.ArgumentParser()
+parser.add_argument('--dataset_path', type=str, default="data/ml-100k/u.item", help='Path to the dataset')
+parser.add_argument('--output_path', type=str, default="data/requests.h5", help='Path to save the requests')
+args = parser.parse_args()
+data_path = args.dataset_path
+output_path = args.output_path
+
+def build_language_model(model_name: str = "google/gemma-7b-it") -> tuple[AutoModelForCausalLM, AutoTokenizer]:
     config = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_use_double_quant=False,
@@ -25,7 +35,7 @@ def load_language_model(model_name: str = "google/gemma-7b-it") -> tuple[AutoMod
 
     return model, tokenizer
 
-def load_encoder():
+def build_encoder():
     loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
     for logger in loggers:
         if "transformers" in logger.name.lower():
@@ -109,10 +119,10 @@ def simulate(
     return data
 
 
-# ---------------------------Load the model and tokenizer --------------------------------
-language_model, language_tokenizer = load_language_model("mistralai/Mistral-7B-Instruct-v0.2")
+# Load the model and tokenizer
+language_model, language_tokenizer = build_language_model("mistralai/Mistral-7B-Instruct-v0.2")
 
-encoder_model, encoder_tokenizer = load_encoder()
+encoder_model, encoder_tokenizer = build_encoder()
 
 # ---------------------------Read in the dataset --------------------------------
 columns = ["movie_id", "movie_title", "release_date", "url", "unknown",
@@ -120,7 +130,7 @@ columns = ["movie_id", "movie_title", "release_date", "url", "unknown",
            "Documentary", "Drama", "Fantasy", "Film-Noir", "Horror", "Musical",
            "Mystery", "Romance", "Sci-Fi", "Thriller", "War", "Western"]
 
-with open("data/ml-100k/u.item", 'r', encoding='latin1') as file:
+with open(data_path, 'r', encoding='latin1') as file:
     first_line = file.readline().strip()
     split_line = first_line.split('|')
 
@@ -134,24 +144,20 @@ for i, col in enumerate(split_line):
         adjusted_columns.append(columns[column_index])  # Use the provided column name
         column_index += 1
 
-movies = pd.read_csv("data/ml-100k/u.item", sep='|', names=adjusted_columns, encoding='latin1', header=None)
+movies = pd.read_csv(data_path, sep='|', names=adjusted_columns, encoding='latin1', header=None)
 movies = movies.drop(columns=[col for col in movies.columns if col.startswith('dummy_')])
 
 
 # Create the dataset
-dataset = SimulatorDataset(movies, language_tokenizer)
+dataset = SimulatorDataset(movies, language_tokenizer, prompt_generators)
 
 # Create the dataloader
-dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
+dataloader = DataLoader(dataset, batch_size=64, shuffle=False, num_workers=4)
 
 # Simulate the responses
-requests, encoded_requests = simulate(language_model, language_tokenizer, encoder_model, encoder_tokenizer, dataloader)
+data = simulate(language_model, language_tokenizer, encoder_model, encoder_tokenizer, dataloader)
 
-# Add the responses to the dataframe
-movies["request"] = requests
-movies["encoded_request"] = encoded_requests
-
-movies.head()
+data.head()
 
 # Save the new dataframe
-movies.to_hdf("data/requests.h5", key="df", mode="w", index=False)
+data.to_hdf("data/requests.h5", key="df", mode="w", index=False)
