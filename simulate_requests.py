@@ -153,4 +153,4 @@ if __name__ == "__main__":
         data = pd.concat([data, model_data], ignore_index=True)
 
     # Save the new dataframe
-    data.to_hdf("data/test.h5", key="df", mode="w", index=False)
+    data.to_hdf(output_path, key="df", mode="w", index=False)
