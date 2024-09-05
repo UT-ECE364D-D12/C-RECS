@@ -174,13 +174,13 @@ class EncoderCriterion(Criterion):
         self.num_valid_queries += num_valid_queries
 
         # Calculate the Average Precision and Recall for the ID classification task
-        prediction_id_probabilities = prediction_id_logits.softmax(-1)
+        prediction_id_probabilities = prediction_id_logits.softmax(dim=-1)
 
-        prediction_id_scores, prediction_id_labels = prediction_id_probabilities.max(-1)
+        prediction_id_scores, prediction_id_labels = prediction_id_probabilities.max(dim=-1)
 
-        self.id_ap += average_precision_score(target_ids.cpu(), prediction_id_scores.cpu())
+        self.id_ap += average_precision_score(target_ids.detach().cpu().view(-1, 1), prediction_id_scores.detach().cpu().view(-1, 1))
 
-        self.id_recall += recall_score(target_ids.cpu(), prediction_id_labels.cpu())
+        self.id_recall += recall_score(target_ids.cpu(), prediction_id_labels.cpu(), average="micro")
 
         self.num_samples += num_samples
     

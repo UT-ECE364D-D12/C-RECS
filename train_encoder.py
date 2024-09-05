@@ -35,11 +35,11 @@ classifier = build_classifier(embed_dim=768, num_classes=requests["movie_id"].nu
 
 optimizer = optim.AdamW(list(encoder.parameters()) + list(expander.parameters()) + list(classifier.parameters()), lr=0.0001)
 
-loss_weights = {"triplet": 5.0, "id": 1.0, "variance": 0.8, "invariance": 0.8, "covariance": 0.0008}
+loss_weights = {"triplet": 1.0, "id": 0.5, "variance": 0.8, "invariance": 0.8, "covariance": 0.0008}
 
 criterion = EncoderCriterion(expander, classifier, loss_weights=loss_weights)
 
-wandb.init(project="MovieLens", name="VICReg Batch Size=80", tags=("Encoder",), config={"model": "Encoder", "optimizer": "AdamW", "lr": 0.0001, "loss_weights": loss_weights, "batch_size": 80})
+wandb.init(project="MovieLens", name="VICReg Weight Decay", tags=("Encoder",), config={"model": "Encoder", "optimizer": "AdamW", "lr": 0.0001, "loss_weights": loss_weights, "batch_size": 80})
 
 train_encoder(
     model=encoder,
