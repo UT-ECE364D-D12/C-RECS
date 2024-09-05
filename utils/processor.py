@@ -99,9 +99,7 @@ def evaluate_one_epoch(
 
             losses = {k: losses.get(k, 0) + v.item() for k, v in batch_losses.items()}
 
-        metrics = criterion.get_metrics()
-
-        wandb.log({"Validation": {"Loss": losses, "Metric": metrics}}, step=wandb.run.step)
+        wandb.log({"Validation": {"Loss": losses}}, step=wandb.run.step)
         
 def evaluate_encoder_one_epoch(
     model: nn.Module,
@@ -128,7 +126,9 @@ def evaluate_encoder_one_epoch(
 
             losses = {k: losses.get(k, 0) + v.item() for k, v in batch_losses.items()}
 
-    wandb.log({"Validation": {"Loss": losses}}, step=wandb.run.step)
+    metrics = criterion.get_metrics()
+
+    wandb.log({"Validation": {"Loss": losses, "Metric": metrics}}, step=wandb.run.step)
 
 def train(
     model: nn.Module,

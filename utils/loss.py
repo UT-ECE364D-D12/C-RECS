@@ -2,6 +2,7 @@ from typing import Dict, Tuple, Union
 
 import torch
 import torch.nn.functional as F
+from sklearn.metrics import average_precision_score, recall_score
 from torch import Tensor, nn
 
 from utils.misc import cosine_distance, pairwise_cosine_distance
@@ -103,16 +104,23 @@ class EncoderCriterion(Criterion):
         return losses
 
     def reset_metrics(self) -> None:
+        self.id_ap = 0.0
+        self.id_recall = 0.0
         self.reid_map = 0.0
         self.cmc_curve = torch.zeros(self.max_rank)
 
+        self.num_samples = 0.0
         self.num_valid_queries = 0
 
     def get_metrics(self) -> Dict[str, Union[int, float]]:
+        id_ap = self.id_ap / self.num_samples
+        id_recall = self.id_recall / self.num_samples
         reid_map = self.reid_map / self.num_valid_queries
         cmc_curve = self.cmc_curve / self.num_valid_queries
 
         metrics = {
+            "id_ap": id_ap,
+            "id_recall": id_recall,
             "reid_map": reid_map,
             "rank_1": cmc_curve[0].item(),
             "rank_5": cmc_curve[4].item(),
@@ -165,11 +173,17 @@ class EncoderCriterion(Criterion):
 
         self.num_valid_queries += num_valid_queries
 
-        # TODO: Add ID mAP metric
-        # prediction_id_probabilities = prediction_id_logits.softmax(-1)
+        # Calculate the Average Precision and Recall for the ID classification task
+        prediction_id_probabilities = prediction_id_logits.softmax(-1)
 
-        # prediction_id_scores, prediction_id_labels = prediction_id_probabilities.max(-1)
+        prediction_id_scores, prediction_id_labels = prediction_id_probabilities.max(-1)
 
+        self.id_ap += average_precision_score(target_ids.cpu(), prediction_id_scores.cpu())
+
+        self.id_recall += recall_score(target_ids.cpu(), prediction_id_labels.cpu())
+
+        self.num_samples += num_samples
+    
     def _get_triplet_loss(self, anchor: Tensor, positive: Tensor, negative: Tensor) -> Tensor:
         distance_ap = cosine_distance(anchor, positive)
         distance_an = cosine_distance(anchor, negative)
