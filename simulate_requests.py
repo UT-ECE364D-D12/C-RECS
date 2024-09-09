@@ -1,7 +1,10 @@
+import os
+
+os.environ["TOKENIZERS_PARALLELISM"] = "true"
+
 import argparse
 import gc
 import logging
-import os
 from typing import Callable, List
 
 import pandas as pd
@@ -9,9 +12,6 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer, BertModel, BertTokenizer, BitsAndBytesConfig, MistralForCausalLM
-
-# os.environ["TOKENIZERS_PARALLELISM"] = "true"
-
 
 
 MODEL_NAMES = ["mistralai/Mistral-7B-Instruct-v0.2", "google/gemma-7b-it"]
@@ -137,30 +137,30 @@ if __name__ == "__main__":
 
     data = pd.DataFrame(columns=["movie_id", "movie_title", "request", "encoded_request"])
 
+    encoder_model, encoder_tokenizer = build_encoder()
+
     for model_name, split_string in zip(MODEL_NAMES, SPLIT_STRINGS):
-        gc.collect()
-        torch.cuda.empty_cache()
-        
         print(f"Loading {model_name}...")
 
         # Load the model and tokenizer
         language_model, language_tokenizer = build_language_model(model_name)
 
-        encoder_model, encoder_tokenizer = build_encoder()
-
         # Create the dataset
         dataset = SimulatorDataset(movies, language_tokenizer, PROMPT_GENERATORS)
 
         # Create the dataloader
-        dataloader = DataLoader(dataset, batch_size=48, shuffle=False)
-
-        gc.collect()
-        torch.cuda.empty_cache()
+        dataloader = DataLoader(dataset, batch_size=32, shuffle=False, num_workers=2)
 
         # Simulate the responses
         model_data = simulate(language_model, language_tokenizer, split_string, encoder_model, encoder_tokenizer, dataloader)
 
         data = pd.concat([data, model_data], ignore_index=True)
+
+        del language_model
+        del language_tokenizer
+
+        gc.collect()
+        torch.cuda.empty_cache()
 
     # Save the new dataframe
     data.to_hdf(output_path, key="df", mode="w", index=False)
