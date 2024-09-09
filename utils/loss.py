@@ -73,7 +73,8 @@ class EncoderCriterion(Criterion):
         positive_embeddings, positive_ids = positive
         negative_embeddings, negative_ids = negative
 
-        anchor_ids, positive_ids, negative_ids = anchor_ids.to(device := anchor_embeddings.device), positive_ids.to(device), negative_ids.to(device)
+        positive_embeddings = positive_embeddings.to(device := anchor_embeddings.device)
+        anchor_ids, positive_ids, negative_ids = anchor_ids.to(device), positive_ids.to(device), negative_ids.to(device)
 
         prediction_anchor_logits, prediction_positive_logits, prediction_negative_logits = self.classifier(anchor_embeddings), self.classifier(positive_embeddings), self.classifier(negative_embeddings)
         

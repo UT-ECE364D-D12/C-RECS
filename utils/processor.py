@@ -54,17 +54,16 @@ def train_encoder_one_epoch(
     for anchor, positive, negative in tqdm(dataloader, desc=f"Training (Epoch {epoch})"):
         optimizer.zero_grad()
 
-        anchor_requests, anchor_ids = anchor 
-        positive_requests, positive_ids = positive 
+        anchor_requests, anchor_ids = anchor
+        positive_embeddings, positive_ids = positive 
         negative_requests, negative_ids = negative 
 
         anchor_embeddings = model(anchor_requests)
-        positive_embeddings = model(positive_requests)
         negative_embeddings = model(negative_requests)
 
         batch_losses = criterion((anchor_embeddings, anchor_ids), (positive_embeddings, positive_ids), (negative_embeddings, negative_ids))
 
-        wandb.log({"Train": {"Loss": batch_losses}}, step=wandb.run.step + len(anchor_requests))
+        wandb.log({"Train": {"Loss": batch_losses}}, step=wandb.run.step + len(anchor_embeddings))
 
         losses = {k: losses.get(k, 0) + v.item() for k, v in batch_losses.items()}
         
@@ -114,12 +113,11 @@ def evaluate_encoder_one_epoch(
 
     with torch.no_grad():
         for anchor, positive, negative in tqdm(dataloader, desc=f"Validation (Epoch {epoch})"):
-            anchor_requests, anchor_ids = anchor 
-            positive_requests, positive_ids = positive 
+            anchor_requests, anchor_ids = anchor
+            positive_embeddings, positive_ids = positive 
             negative_requests, negative_ids = negative 
 
             anchor_embeddings = model(anchor_requests)
-            positive_embeddings = model(positive_requests)
             negative_embeddings = model(negative_requests)
 
             batch_losses = criterion((anchor_embeddings, anchor_ids), (positive_embeddings, positive_ids), (negative_embeddings, negative_ids))

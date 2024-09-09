@@ -33,8 +33,9 @@ class DecoderDataset(Dataset):
         return torch.tensor(request), torch.tensor(movie_id - 1)
     
 class EncoderDataset(Dataset):
-    def __init__(self, data: pd.DataFrame) -> None:
+    def __init__(self, data: pd.DataFrame, movie_embeddings: Tensor) -> None:
         self.data = data
+        self.movie_embeddings = movie_embeddings
         
         self.num_movies = len(self.data)
         self.num_samples_per_movie = len(self.data["request"].iloc[0])
@@ -42,16 +43,14 @@ class EncoderDataset(Dataset):
     def __len__(self) -> int:
         return self.num_movies * self.num_samples_per_movie
     
-    def __getitem__(self, idx: int) -> Tuple[Tuple[str, int], Tuple[str, int], Tuple[str, int]]:
+    def __getitem__(self, idx: int) -> Tuple[Tuple[Tensor, int], Tuple[str, int], Tuple[str, int]]:
         movie_idx, request_idx = divmod(idx, self.num_samples_per_movie)
 
         anchor_id, anchor_requests = self.data.iloc[movie_idx][["movie_id", "request"]]
 
         anchor_request = anchor_requests[request_idx]
 
-        positive_request_idx = random.choice([i for i in range(self.num_samples_per_movie) if i != request_idx])
-
-        positive_request = anchor_requests[positive_request_idx]
+        positive_embedding = self.movie_embeddings[anchor_id - 1]
 
         negative_movie_idx = random.choice([i for i in range(self.num_movies) if i != movie_idx])
 
@@ -59,7 +58,7 @@ class EncoderDataset(Dataset):
         
         negative_request = random.choice(negative_requests)
 
-        return ((anchor_request, anchor_id - 1), (positive_request, anchor_id - 1), (negative_request, negative_id - 1))
+        return ((anchor_request, anchor_id - 1), (positive_embedding, anchor_id - 1), (negative_request, negative_id - 1))
 
 def get_feature_sizes(ratings: pd.DataFrame) -> Tuple[int, ...]:
     return ratings["user_id"].nunique(), ratings["movie_id"].nunique()
