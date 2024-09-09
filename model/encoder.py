@@ -32,3 +32,5 @@ class Encoder(nn.Module):
 def build_expander(embed_dim: int, width: float = 2.0, **kwargs) -> MultiLayerPerceptron:
     return MultiLayerPerceptron(input_dim=embed_dim, hidden_dims=[expander_dim := int(embed_dim * width), expander_dim], output_dim=expander_dim, **kwargs)
 
+def build_classifier(embed_dim: int, num_classes: int, **kwargs) -> MultiLayerPerceptron:
+    return MultiLayerPerceptron(input_dim=embed_dim, hidden_dims=[embed_dim, embed_dim], output_dim=num_classes, **kwargs)

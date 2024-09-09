@@ -9,8 +9,8 @@ def cosine_distance(x: Tensor, y: Tensor) -> Tensor:
     """
     return 1 - torch.cosine_similarity(x, y)
 
-def pairwise_cosine_distance(x: Tensor, y: Tensor) -> Tensor:
+def pairwise_cosine_distance(x: Tensor, y: Tensor = None) -> Tensor:
     """
     Returns the pairwise cosine distance between two tensors.
     """
-    return 1 - pairwise_cosine_similarity(x, y)
+    return 1 - pairwise_cosine_similarity(x, y, zero_diagonal=False)
