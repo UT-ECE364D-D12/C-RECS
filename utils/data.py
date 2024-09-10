@@ -3,9 +3,9 @@ from typing import Tuple
 
 import pandas as pd
 import torch
+from sklearn.model_selection import train_test_split
 from torch import Tensor
 from torch.utils.data import Dataset
-from transformers import BertTokenizer
 
 
 class RatingsDataset(Dataset):
@@ -20,45 +20,44 @@ class RatingsDataset(Dataset):
 
         return torch.tensor([user_id - 1, movie_id - 1]), torch.tensor(rating / 5.0)
     
-class DecoderDataset(Dataset):
-    def __init__(self, requests: pd.DataFrame) -> None:
-        self.requests = requests
-
-    def __len__(self) -> int:
-        return len(self.requests)
-    
-    def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor]:
-        request, movie_id = self.requests.iloc[idx][["encoded_request", "movie_id"]]
-
-        return torch.tensor(request), torch.tensor(movie_id - 1)
-    
 class EncoderDataset(Dataset):
-    def __init__(self, data: pd.DataFrame, movie_embeddings: Tensor) -> None:
-        self.data = data
-        self.movie_embeddings = movie_embeddings
-        
-        self.num_movies = len(self.data)
-        self.num_samples_per_movie = len(self.data["request"].iloc[0])
+    def __init__(self, ratings_data: pd.DataFrame, request_data: pd.DataFrame) -> None:
+        self.ratings_data = ratings_data
+        self.request_data = request_data
+
+        self.num_movies = len(self.request_data)
 
     def __len__(self) -> int:
-        return self.num_movies * self.num_samples_per_movie
-    
+        return len(self.ratings_data)
+
     def __getitem__(self, idx: int) -> Tuple[Tuple[Tensor, int], Tuple[str, int], Tuple[str, int]]:
-        movie_idx, request_idx = divmod(idx, self.num_samples_per_movie)
+        user_id, movie_id, rating = self.ratings_data.iloc[idx][["user_id", "movie_id", "rating"]]
 
-        anchor_id, anchor_requests = self.data.iloc[movie_idx][["movie_id", "request"]]
+        positive_requests = self.request_data.iloc[movie_id - 1]["requests"]
 
-        anchor_request = anchor_requests[request_idx]
+        positive_request = random.choice(positive_requests)
+        
+        negative_movie_idx = random.choice([i for i in range(self.num_movies) if i != movie_id - 1])
 
-        positive_embedding = self.movie_embeddings[anchor_id - 1]
-
-        negative_movie_idx = random.choice([i for i in range(self.num_movies) if i != movie_idx])
-
-        negative_id, negative_requests = self.data.iloc[negative_movie_idx][["movie_id", "request"]]
+        negative_id, negative_requests = self.request_data.iloc[negative_movie_idx][["movie_id", "requests"]]
         
         negative_request = random.choice(negative_requests)
 
-        return ((anchor_request, anchor_id - 1), (positive_embedding, anchor_id - 1), (negative_request, negative_id - 1))
+        return torch.tensor([user_id - 1, movie_id - 1]), torch.tensor(rating / 5.0), (positive_request, movie_id - 1), (negative_request, negative_id - 1)
+
+def train_test_split_requests(requests: pd.DataFrame, train_size: float) -> Tuple[pd.DataFrame, pd.DataFrame]:
+
+    def split_request(row: pd.Series) -> pd.Series: 
+        train_req, test_req = train_test_split(row['request'], train_size=train_size)
+
+        return pd.Series([train_req, test_req])
+
+    requests[['train_requests', 'test_requests']] = requests.apply(split_request, axis=1)
+
+    train_requests = requests[['movie_id', 'movie_title', 'train_requests']].rename(columns={'train_requests': 'requests'})
+    test_requests = requests[['movie_id', 'movie_title', 'test_requests']].rename(columns={'test_requests': 'requests'})
+
+    return train_requests, test_requests
 
 def get_feature_sizes(ratings: pd.DataFrame) -> Tuple[int, ...]:
     return ratings["user_id"].nunique(), ratings["movie_id"].nunique()

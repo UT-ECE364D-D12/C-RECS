@@ -42,22 +42,7 @@ class RecommenderCriterion(Criterion):
 
         return losses
     
-class DecoderCriterion(Criterion):
-    def __init__(self, loss_weights: Dict[str, float] = {}) -> None:
-        super().__init__()
-
-        self.loss_weights = loss_weights
-
-    def forward(self, predictions: Tensor, targets: Tensor) -> Dict[str, Tensor]:
-        ce_loss = F.cross_entropy(predictions, targets)
-
-        losses = {"ce": ce_loss}
-
-        losses["overall"] = sum(losses[loss_name] * self.loss_weights.get(loss_name, 1) for loss_name in losses)
-
-        return losses
-    
-class EncoderCriterion(Criterion):
+class EncoderRecommenderCriterion(Criterion):
     def __init__(self, expander: nn.Module, classifier: nn.Module, margin: float = 1.0, gamma: float = 1.0, loss_weights: Dict[str, float] = {}, max_rank: int = 50) -> None:
         super().__init__()
 
@@ -68,17 +53,18 @@ class EncoderCriterion(Criterion):
         self.loss_weights = loss_weights
         self.max_rank = max_rank
     
-    def forward(self, anchor: Tuple[Tensor, Tensor], positive: Tuple[Tensor, Tensor], negative: Tuple[Tensor, Tensor]) -> Dict[str, Tensor]:
+    def forward(self, rec_predictions: Tensor, rec_targets: Tensor, anchor: Tuple[Tensor, Tensor], positive: Tuple[Tensor, Tensor], negative: Tuple[Tensor, Tensor]) -> Dict[str, Tensor]:
         anchor_embeddings, anchor_ids = anchor
         positive_embeddings, positive_ids = positive
         negative_embeddings, negative_ids = negative
 
-        positive_embeddings = positive_embeddings.to(device := anchor_embeddings.device)
-        anchor_ids, positive_ids, negative_ids = anchor_ids.to(device), positive_ids.to(device), negative_ids.to(device)
+        anchor_ids, positive_ids, negative_ids = anchor_ids.to(device := anchor_embeddings.device), positive_ids.to(device), negative_ids.to(device)
 
         prediction_anchor_logits, prediction_positive_logits, prediction_negative_logits = self.classifier(anchor_embeddings), self.classifier(positive_embeddings), self.classifier(negative_embeddings)
         
         self._update_metrics((anchor_embeddings, prediction_anchor_logits, anchor_ids), (positive_embeddings, prediction_positive_logits, positive_ids), (negative_embeddings, prediction_negative_logits, negative_ids))
+        
+        mse_loss = F.mse_loss(rec_predictions, rec_targets)
 
         triplet_loss = self._get_triplet_loss(anchor_embeddings, positive_embeddings, negative_embeddings)
 
@@ -93,6 +79,7 @@ class EncoderCriterion(Criterion):
         covariance_loss = (self._get_covariance_loss(anchor_embeddings) + self._get_covariance_loss(positive_embeddings) + self._get_covariance_loss(negative_embeddings)) / 3
 
         losses = {
+            "mse": mse_loss,
             "triplet": triplet_loss,
             "id": id_loss,
             "variance": variance_loss,

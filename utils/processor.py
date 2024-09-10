@@ -5,7 +5,8 @@ from tqdm import tqdm
 
 import wandb
 from model.encoder import Encoder
-from utils.loss import Criterion, EncoderCriterion
+from model.recommender import DeepFM
+from utils.loss import Criterion, EncoderRecommenderCriterion, RecommenderCriterion
 
 
 def train_one_epoch(
@@ -40,28 +41,35 @@ def train_one_epoch(
         optimizer.step()
 
 def train_encoder_one_epoch(
-    model: Encoder,
+    encoder: Encoder,
+    recommender: DeepFM,
     optimizer: optim.Optimizer,
-    criterion: EncoderCriterion,
+    criterion: EncoderRecommenderCriterion,
     dataloader: DataLoader,
     epoch: int,
+    device: str = "cpu"
 ) -> None:
     criterion.reset_metrics()
     losses = {}
 
-    model.train()
+    encoder.train()
 
-    for anchor, positive, negative in tqdm(dataloader, desc=f"Training (Epoch {epoch})"):
+    for rec_features, rec_targets, positive, negative in tqdm(dataloader, desc=f"Training (Epoch {epoch})"):
         optimizer.zero_grad()
+        
+        rec_features, rec_targets = rec_features.to(device), rec_targets.to(device)
 
-        anchor_requests, anchor_ids = anchor
-        positive_embeddings, positive_ids = positive 
+        rec_predictions = recommender(rec_features)
+
+        positive_requests, positive_ids = positive 
         negative_requests, negative_ids = negative 
 
-        anchor_embeddings = model(anchor_requests)
-        negative_embeddings = model(negative_requests)
+        positive_embeddings = encoder(positive_requests)
+        negative_embeddings = encoder(negative_requests)
 
-        batch_losses = criterion((anchor_embeddings, anchor_ids), (positive_embeddings, positive_ids), (negative_embeddings, negative_ids))
+        anchor_embeddings, anchor_ids = recommender.embedding.embedding.weight[recommender.embedding.offsets[1] + positive_ids], positive_ids
+
+        batch_losses = criterion(rec_predictions, rec_targets, (anchor_embeddings, anchor_ids), (positive_embeddings, positive_ids), (negative_embeddings, negative_ids))
 
         wandb.log({"Train": {"Loss": batch_losses}}, step=wandb.run.step + len(anchor_embeddings))
 
@@ -101,26 +109,34 @@ def evaluate_one_epoch(
         wandb.log({"Validation": {"Loss": losses}}, step=wandb.run.step)
         
 def evaluate_encoder_one_epoch(
-    model: nn.Module,
-    criterion: Criterion,
+    encoder: Encoder,
+    recommender: DeepFM,
+    criterion: EncoderRecommenderCriterion,
     dataloader: DataLoader,
     epoch: int,
+    device: str = "cpu",
 ) -> None:
     criterion.reset_metrics()
     losses = {}
 
-    model.eval()
+    encoder.eval()
 
     with torch.no_grad():
-        for anchor, positive, negative in tqdm(dataloader, desc=f"Validation (Epoch {epoch})"):
-            anchor_requests, anchor_ids = anchor
-            positive_embeddings, positive_ids = positive 
+        for rec_features, rec_targets, positive, negative in tqdm(dataloader, desc=f"Validation (Epoch {epoch})"):
+            
+            rec_features, rec_targets = rec_features.to(device), rec_targets.to(device)
+
+            rec_predictions = recommender(rec_features)
+
+            positive_requests, positive_ids = positive 
             negative_requests, negative_ids = negative 
 
-            anchor_embeddings = model(anchor_requests)
-            negative_embeddings = model(negative_requests)
+            positive_embeddings = encoder(positive_requests)
+            negative_embeddings = encoder(negative_requests)
 
-            batch_losses = criterion((anchor_embeddings, anchor_ids), (positive_embeddings, positive_ids), (negative_embeddings, negative_ids))
+            anchor_embeddings, anchor_ids = recommender.embedding.embedding.weight[recommender.embedding.offsets[1] + positive_ids], positive_ids
+
+            batch_losses = criterion(rec_predictions, rec_targets, (anchor_embeddings, anchor_ids), (positive_embeddings, positive_ids), (negative_embeddings, negative_ids))
 
             losses = {k: losses.get(k, 0) + v.item() for k, v in batch_losses.items()}
 
@@ -143,14 +159,16 @@ def train(
         evaluate_one_epoch(model, criterion, test_dataloader, epoch, device)
 
 def train_encoder(
-    model: Encoder,
+    encoder: Encoder,
+    recommender: DeepFM,
     optimizer: optim.Optimizer,
-    criterion: EncoderCriterion,
+    criterion: EncoderRecommenderCriterion,
     train_dataloader: DataLoader,
     test_dataloader: DataLoader,
     max_epochs: int,
+    device: str = "cpu",
 ) -> None:
     for epoch in range(max_epochs):
-        train_encoder_one_epoch(model, optimizer, criterion, train_dataloader, epoch)
+        train_encoder_one_epoch(encoder, recommender, optimizer, criterion, train_dataloader, epoch, device)
         
-        evaluate_encoder_one_epoch(model, criterion, test_dataloader, epoch)
+        evaluate_encoder_one_epoch(encoder, recommender, criterion, test_dataloader, epoch, device)
