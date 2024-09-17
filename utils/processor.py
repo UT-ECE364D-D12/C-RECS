@@ -47,6 +47,7 @@ def train_encoder_one_epoch(
     criterion: EncoderRecommenderCriterion,
     dataloader: DataLoader,
     epoch: int,
+    accumulation_steps: int = 1,
     device: str = "cpu"
 ) -> None:
     criterion.reset_metrics()
@@ -54,8 +55,7 @@ def train_encoder_one_epoch(
 
     encoder.train()
 
-    for rec_features, rec_targets, positive, negative in tqdm(dataloader, desc=f"Training (Epoch {epoch})"):
-        optimizer.zero_grad()
+    for i, (rec_features, rec_targets, positive, negative) in tqdm(enumerate(dataloader), desc=f"Training (Epoch {epoch})", total=len(dataloader)):
         
         rec_features, rec_targets = rec_features.to(device), rec_targets.to(device)
 
@@ -78,7 +78,10 @@ def train_encoder_one_epoch(
         loss = batch_losses["overall"]
 
         loss.backward()
-        optimizer.step()
+
+        if (i + 1) % accumulation_steps == 0:
+            optimizer.step()
+            optimizer.zero_grad()
 
     metrics = criterion.get_metrics()
 
@@ -105,6 +108,8 @@ def evaluate_one_epoch(
             batch_losses = criterion(predictions, targets)
 
             losses = {k: losses.get(k, 0) + v.item() for k, v in batch_losses.items()}
+
+        losses = {k: v / len(dataloader) for k, v in losses.items()}
 
         wandb.log({"Validation": {"Loss": losses}}, step=wandb.run.step)
         
@@ -140,6 +145,8 @@ def evaluate_encoder_one_epoch(
 
             losses = {k: losses.get(k, 0) + v.item() for k, v in batch_losses.items()}
 
+    losses = {k: v / len(dataloader) for k, v in losses.items()}
+
     metrics = criterion.get_metrics()
 
     wandb.log({"Validation": {"Loss": losses, "Metric": metrics}}, step=wandb.run.step)
@@ -166,9 +173,10 @@ def train_encoder(
     train_dataloader: DataLoader,
     test_dataloader: DataLoader,
     max_epochs: int,
+    accumulation_steps: int = 1,
     device: str = "cpu",
 ) -> None:
     for epoch in range(max_epochs):
-        train_encoder_one_epoch(encoder, recommender, optimizer, criterion, train_dataloader, epoch, device)
+        train_encoder_one_epoch(encoder, recommender, optimizer, criterion, train_dataloader, epoch, accumulation_steps, device)
         
         evaluate_encoder_one_epoch(encoder, recommender, criterion, test_dataloader, epoch, device)
