@@ -20,13 +20,13 @@ train_dataset, test_dataset = RatingsDataset(train_ratings), RatingsDataset(test
 
 train_dataloader, test_dataloader = DataLoader(train_dataset, batch_size=1024, shuffle=True), DataLoader(test_dataset, batch_size=1024)
 
-model = DeepFM(feature_dims=get_feature_sizes(ratings), embed_dim=768, mlp_dims=(16, 16), dropout=0.8).to(device)
+model = DeepFM(feature_dims=get_feature_sizes(ratings), embed_dim=768, mlp_dims=(768, 768), dropout=0.8).to(device)
 
 optimizer = optim.AdamW(model.parameters(), lr=0.001)
 
 criterion = RecommenderCriterion()
 
-wandb.init(project="MovieLens", name="DeepFM Embed Dim=16", tags=("Recommender",), config={"model": "DeepFM", "optimizer": "AdamW", "lr": 0.001, "Dropout": 0.8, "loss": "MSE"})
+wandb.init(project="MovieLens", name="DeepFM Embed Dim=768", tags=("Recommender",), config={"model": "DeepFM", "optimizer": "AdamW", "lr": 0.001, "Dropout": 0.8, "loss": "MSE"})
 
 train(
     model=model,
