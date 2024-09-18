@@ -40,4 +40,4 @@ train(
 
 wandb.finish()
 
-torch.save(model.state_dict(), "weights/recommender/deepfm.pt")
+torch.save(model.state_dict(), "weights/recommender/pretrained-deepfm.pt")

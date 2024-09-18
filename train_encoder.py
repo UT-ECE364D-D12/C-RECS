@@ -11,11 +11,14 @@ from model.encoder import Encoder, build_classifier, build_expander
 from model.recommender import DeepFM
 from utils.data import EncoderDataset, get_feature_sizes, train_test_split_requests
 from utils.loss import EncoderRecommenderCriterion
+from utils.misc import set_random_seed
 from utils.processor import train_encoder
 
 args = yaml.safe_load(open("configs/encoder.yaml", "r"))
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
+
+set_random_seed(args["random_seed"])
 
 requests = pd.read_csv('data/requests.csv')
 
@@ -34,9 +37,9 @@ train_dataset, test_dataset = EncoderDataset(train_ratings, train_requests), Enc
 
 train_dataloader, test_dataloader = DataLoader(train_dataset, batch_size=args["batch_size"], shuffle=True, num_workers=4, drop_last=True), DataLoader(test_dataset, batch_size=args["batch_size"], num_workers=4, drop_last=True)
 
-encoder = Encoder().to(device)
+encoder = Encoder(**args["encoder"]).to(device)
 
-recommender = DeepFM(feature_dims=get_feature_sizes(ratings), embed_dim=768, mlp_dims=(768, 768), dropout=0.8).to(device)
+recommender = DeepFM(feature_dims=get_feature_sizes(ratings), **args["recommender"]).to(device)
 
 expander = build_expander(embed_dim=768, width=2).to(device)
 
@@ -51,7 +54,7 @@ optimizer = optim.AdamW([
 
 criterion = EncoderRecommenderCriterion(expander, classifier, loss_weights=args["loss_weights"])
 
-wandb.init(project="MovieLens", name="Rec + Encoder + VICReg", tags=("Encoder",), config=args)
+wandb.init(project="MovieLens", name="Positive Movies Smaller Weight Decay", tags=("Encoder",), config=args)
 
 train_encoder(
     encoder=encoder,

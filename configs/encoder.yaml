@@ -1,12 +1,13 @@
+random_seed: 42
 batch_size: 64
 
 train:
-  max_epochs: 5
+  max_epochs: 2
   accumulation_steps: 1
 
 loss_weights:
   mse: 10.0
-  id: 0.0
+  id: 5.0
   triplet: 10.0
   variance: 0.8
   invariance: 0.8
@@ -15,7 +16,7 @@ loss_weights:
 optimizer:
   encoder:
     lr: 0.0001
-    weight_decay: 0.01
+    weight_decay: 0.1
   classifier:
     lr: 0.001
     weight_decay: 0.01
@@ -25,3 +26,12 @@ optimizer:
   recommender:
     lr: 0.001
     weight_decay: 0.01
+
+encoder:
+  hidden_dropout_prob: 0.0
+
+recommender:
+  embed_dim: 768
+  mlp_dims: [768, 768]
+  dropout: 0.8
+  # weights: "/weights/recommender/pretrained-deepfm.pt"

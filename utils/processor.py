@@ -55,21 +55,20 @@ def train_encoder_one_epoch(
 
     encoder.train()
 
-    for i, (rec_features, rec_targets, positive, negative) in tqdm(enumerate(dataloader), desc=f"Training (Epoch {epoch})", total=len(dataloader)):
-        
+    for i, (rec_features, rec_targets, anchor, negative) in tqdm(enumerate(dataloader), desc=f"Training (Epoch {epoch})", total=len(dataloader)):
         rec_features, rec_targets = rec_features.to(device), rec_targets.to(device)
 
         rec_predictions = recommender(rec_features)
 
-        positive_requests, positive_ids = positive 
+        anchor_requests, anchor_ids = anchor 
         negative_requests, negative_ids = negative 
 
-        positive_embeddings = encoder(positive_requests)
+        anchor_embeddings = encoder(anchor_requests)
         negative_embeddings = encoder(negative_requests)
 
-        anchor_embeddings, anchor_ids = recommender.embedding.embedding.weight[recommender.embedding.offsets[1] + positive_ids], positive_ids
+        positive_embeddings = recommender.embedding.embedding.weight[recommender.embedding.offsets[1] + anchor_ids]
 
-        batch_losses = criterion(rec_predictions, rec_targets, (anchor_embeddings, anchor_ids), (positive_embeddings, positive_ids), (negative_embeddings, negative_ids))
+        batch_losses = criterion(rec_predictions, rec_targets, (anchor_embeddings, anchor_ids), (positive_embeddings, anchor_ids), (negative_embeddings, negative_ids))
 
         wandb.log({"Train": {"Loss": batch_losses}}, step=wandb.run.step + len(anchor_embeddings))
 
@@ -127,21 +126,20 @@ def evaluate_encoder_one_epoch(
     encoder.eval()
 
     with torch.no_grad():
-        for rec_features, rec_targets, positive, negative in tqdm(dataloader, desc=f"Validation (Epoch {epoch})"):
-            
+        for rec_features, rec_targets, anchor, negative in tqdm(dataloader, desc=f"Validation (Epoch {epoch})"):
             rec_features, rec_targets = rec_features.to(device), rec_targets.to(device)
 
             rec_predictions = recommender(rec_features)
 
-            positive_requests, positive_ids = positive 
+            anchor_requests, anchor_ids = anchor 
             negative_requests, negative_ids = negative 
 
-            positive_embeddings = encoder(positive_requests)
+            anchor_embeddings = encoder(anchor_requests)
             negative_embeddings = encoder(negative_requests)
 
-            anchor_embeddings, anchor_ids = recommender.embedding.embedding.weight[recommender.embedding.offsets[1] + positive_ids], positive_ids
+            positive_embeddings = recommender.embedding.embedding.weight[recommender.embedding.offsets[1] + anchor_ids]
 
-            batch_losses = criterion(rec_predictions, rec_targets, (anchor_embeddings, anchor_ids), (positive_embeddings, positive_ids), (negative_embeddings, negative_ids))
+            batch_losses = criterion(rec_predictions, rec_targets, (anchor_embeddings, anchor_ids), (positive_embeddings, anchor_ids), (negative_embeddings, negative_ids))
 
             losses = {k: losses.get(k, 0) + v.item() for k, v in batch_losses.items()}
 
