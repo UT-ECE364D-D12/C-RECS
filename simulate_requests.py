@@ -135,4 +135,4 @@ if __name__ == "__main__":
         gc.collect()
         torch.cuda.empty_cache()
 
-    data.csv(output_path, index=False)
+    data.to_csv(output_path, index=False)
