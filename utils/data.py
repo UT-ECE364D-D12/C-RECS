@@ -33,9 +33,9 @@ class EncoderDataset(Dataset):
     def __getitem__(self, idx: int) -> Tuple[Tuple[Tensor, int], Tuple[str, int], Tuple[str, int]]:
         user_id, movie_id, rating = self.ratings_data.iloc[idx][["user_id", "movie_id", "rating"]]
 
-        positive_requests = self.request_data.iloc[movie_id - 1]["requests"]
+        anchor_requests = self.request_data.iloc[movie_id - 1]["requests"]
 
-        positive_request = random.choice(positive_requests)
+        anchor_request = random.choice(anchor_requests)
         
         negative_movie_idx = random.choice([i for i in range(self.num_movies) if i != movie_id - 1])
 
@@ -43,7 +43,7 @@ class EncoderDataset(Dataset):
         
         negative_request = random.choice(negative_requests)
 
-        return torch.tensor([user_id - 1, movie_id - 1]), torch.tensor(rating / 5.0), (positive_request, movie_id - 1), (negative_request, negative_id - 1)
+        return torch.tensor([user_id - 1, movie_id - 1]), torch.tensor(rating / 5.0), (anchor_request, movie_id - 1), (negative_request, negative_id - 1)
 
 def train_test_split_requests(requests: pd.DataFrame, train_size: float) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
