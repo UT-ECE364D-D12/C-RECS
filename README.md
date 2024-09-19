@@ -25,13 +25,14 @@ make
 pip install .
 ```
 
-4. Download [MovieLens](https://grouplens.org/datasets/movielens/100k/) and place it in `data/ml-100k/`:
+4. Download MovieLens and place it in `data/ml-20m/`:
 ```bash
 mkdir data
 cd data
 wget https://files.grouplens.org/datasets/movielens/ml-20m.zip
 unzip ml-20m.zip
 rm ml-20m.zip
+cd ..
 ```
 
 
