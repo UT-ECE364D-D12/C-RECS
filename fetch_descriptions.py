@@ -4,8 +4,6 @@ from tqdm import tqdm
 
 links = pd.read_csv('data/ml-20m/links.csv', header=0, names=["movie_id", "imdb_id", "tmdb_id"])
 
-links = links.head()
-
 imdb = Cinemagoer()
 
 def get_description(imdb_id: str):
