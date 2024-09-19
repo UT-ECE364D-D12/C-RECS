@@ -99,8 +99,8 @@ def simulate(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--dataset_path', type=str, default="data/ml-100k/u.item", help='Path to the dataset')
-    parser.add_argument('--output_path', type=str, default="data/requests.csv", help='Path to save the requests')
+    parser.add_argument('--dataset_path', type=str, default="data/ml-20m/movies.csv", help='Path to the dataset')
+    parser.add_argument('--output_path', type=str, default="data/ml-20m/requests.csv", help='Path to save the requests')
 
     args = parser.parse_args()
 
@@ -108,7 +108,7 @@ if __name__ == "__main__":
     output_path = args.output_path
 
     # Read in the data
-    movies = pd.read_csv(data_path, sep='|', names=["movie_id", "movie_title", "release_date", "dummy", "url", "unknown", "Action", "Adventure", "Animation", "Children's", "Comedy", "Crime", "Documentary", "Drama", "Fantasy", "Film-Noir", "Horror", "Musical", "Mystery", "Romance", "Sci-Fi", "Thriller", "War", "Western"], encoding='latin1', header=None)
+    movies = pd.read_csv(data_path, header=0, names=["movie_id", "movie_title", "genres"])
 
     movies = movies[["movie_id", "movie_title"]]
 

@@ -12,7 +12,7 @@ from utils.processor import train
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-ratings = pd.read_csv("data/ml-100k/u.data", sep="\t", header=None, names=["user_id", "movie_id", "rating", "timestamp"])
+ratings = pd.read_csv("data/ml-20m/ratings.csv", header=0, names=["user_id", "movie_id", "rating", "timestamp"])
 
 train_ratings, test_ratings = train_test_split(ratings, train_size=0.8)
 

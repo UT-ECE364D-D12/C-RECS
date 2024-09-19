@@ -20,7 +20,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 set_random_seed(args["random_seed"])
 
-requests = pd.read_csv('data/requests.csv')
+requests = pd.read_csv('data/ml-20m/requests.csv')
 
 requests = requests.groupby("movie_id").agg({
     "movie_title": "first",
@@ -29,7 +29,7 @@ requests = requests.groupby("movie_id").agg({
 
 train_requests, test_requests = train_test_split_requests(requests, train_size=0.8)
 
-ratings = pd.read_csv("data/ml-100k/u.data", sep="\t", header=None, names=["user_id", "movie_id", "rating", "timestamp"])
+ratings = pd.read_csv("data/ml-20m/ratings.csv", header=0, names=["user_id", "movie_id", "rating", "timestamp"])
 
 train_ratings, test_ratings = train_test_split(ratings, train_size=0.8)
 
@@ -54,7 +54,7 @@ optimizer = optim.AdamW([
 
 criterion = EncoderRecommenderCriterion(expander, classifier, loss_weights=args["loss_weights"])
 
-wandb.init(project="MovieLens", name="Positive Movies Smaller Weight Decay", tags=("Encoder",), config=args)
+wandb.init(project="MovieLens", name="Pretrained Recommender ", tags=("Encoder",), config=args)
 
 train_encoder(
     encoder=encoder,
