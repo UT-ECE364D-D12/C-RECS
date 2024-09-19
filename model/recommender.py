@@ -12,13 +12,16 @@ class DeepFM(nn.Module):
     A pytorch implementation of DeepFM.
     Reference: H Guo, et al. DeepFM: A Factorization-Machine based Neural Network for CTR Prediction, 2017.
     """
-    def __init__(self, feature_dims: List[int], embed_dim: int, mlp_dims: List[int], dropout: float):
+    def __init__(self, feature_dims: List[int], embed_dim: int, mlp_dims: List[int], dropout: float, weights: str = None):
         super().__init__()
         self.linear = FeaturesLinear(feature_dims)
         self.fm = FactorizationMachine(reduce_sum=True)
         self.embedding = FeaturesEmbedding(feature_dims, embed_dim)
         self.embed_output_dim = len(feature_dims) * embed_dim
         self.mlp = MultiLayerPerceptron(input_dim=self.embed_output_dim, hidden_dims=mlp_dims, output_dim=1, dropout=dropout)
+
+        if weights is not None:
+            self.load_state_dict(torch.load(weights))
 
     def forward(self, x: Tensor) -> Tensor:
         """
