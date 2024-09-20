@@ -27,11 +27,15 @@ requests = requests.groupby("movie_id").agg({
     "request": list,
 }).reset_index()
 
+requests.set_index("movie_id", inplace=True, drop=False)
+
 train_requests, test_requests = train_test_split_requests(requests, train_size=0.8)
 
 ratings = pd.read_csv("data/ml-20m/ratings.csv", header=0, names=["user_id", "movie_id", "rating", "timestamp"])
 
 train_ratings, test_ratings = train_test_split(ratings, train_size=0.8)
+
+train_ratings, test_ratings = train_ratings.reset_index(drop=True), test_ratings.reset_index(drop=True)
 
 train_dataset, test_dataset = EncoderDataset(train_ratings, train_requests), EncoderDataset(test_ratings, test_requests)
 
@@ -54,7 +58,7 @@ optimizer = optim.AdamW([
 
 criterion = EncoderRecommenderCriterion(expander, classifier, loss_weights=args["loss_weights"])
 
-wandb.init(project="MovieLens", name="Pretrained Recommender ", tags=("Encoder",), config=args)
+wandb.init(project="MovieLens", name="ml-20m", tags=("Encoder",), config=args)
 
 train_encoder(
     encoder=encoder,

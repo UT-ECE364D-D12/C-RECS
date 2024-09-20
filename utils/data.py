@@ -25,21 +25,23 @@ class EncoderDataset(Dataset):
         self.ratings_data = ratings_data
         self.request_data = request_data
 
+        self.unique_movie_ids = self.request_data["movie_id"].unique
+
         self.num_movies = len(self.request_data)
 
     def __len__(self) -> int:
         return len(self.ratings_data)
 
     def __getitem__(self, idx: int) -> Tuple[Tuple[Tensor, int], Tuple[str, int], Tuple[str, int]]:
-        user_id, movie_id, rating = self.ratings_data.iloc[idx][["user_id", "movie_id", "rating"]]
+        user_id, movie_id, rating = self.ratings_data.iloc[idx][["user_id", "movie_id", "rating"]].astype(int)
 
-        anchor_requests = self.request_data.iloc[movie_id - 1]["requests"]
+        anchor_requests = self.request_data.loc[movie_id]["requests"]
 
         anchor_request = random.choice(anchor_requests)
         
-        negative_movie_idx = random.choice([i for i in range(self.num_movies) if i != movie_id - 1])
+        negative_movie_idx = random.choice([i for i in range(self.num_movies) if i != movie_id])
 
-        negative_id, negative_requests = self.request_data.iloc[negative_movie_idx][["movie_id", "requests"]]
+        negative_id, negative_requests = self.request_data.loc[negative_movie_idx][["movie_id", "requests"]]
         
         negative_request = random.choice(negative_requests)
 
