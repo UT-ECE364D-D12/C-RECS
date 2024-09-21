@@ -31,7 +31,7 @@ requests.set_index("movie_id", inplace=True, drop=False)
 
 train_requests, test_requests = train_test_split_requests(requests, train_size=0.8)
 
-ratings = pd.read_csv("data/ml-20m/ratings.csv", header=0, names=["user_id", "movie_id", "rating", "timestamp"])
+ratings = pd.read_csv("data/ml-20m/ratings.csv", header=0, names=["user_id", "movie_id", "rating", "timestamp"]).astype(int)
 
 train_ratings, test_ratings = train_test_split(ratings, train_size=0.8)
 

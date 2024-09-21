@@ -2,7 +2,7 @@ random_seed: 42
 batch_size: 64
 
 train:
-  max_epochs: 2
+  max_epochs: 1
   accumulation_steps: 1
 
 loss_weights:
@@ -34,4 +34,4 @@ recommender:
   embed_dim: 768
   mlp_dims: [768, 768]
   dropout: 0.8
-  # weights: "/weights/recommender/pretrained-deepfm.pt"
+  weights: NULL
