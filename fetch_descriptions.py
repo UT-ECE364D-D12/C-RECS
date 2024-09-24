@@ -8,7 +8,14 @@ imdb = Cinemagoer()
 
 def get_description(imdb_id: str):
     try:
-        return imdb.get_movie(imdb_id)["plot outline"]
+        movie = imdb.get_movie(imdb_id)
+
+        if "plot outline" in movie.keys():
+            return movie["plot outline"]
+        elif "plot" in movie.keys():
+            return movie["plot"]
+            
+        return None
     except:
         return None
     
