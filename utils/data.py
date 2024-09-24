@@ -12,21 +12,33 @@ class RatingsDataset(Dataset):
     def __init__(self, ratings: pd.DataFrame) -> None:
         self.ratings = ratings
 
+        self.unique_user_ids = self.ratings_data["user_id"].unique()
+        self.user_id_to_idx = {user_id: i for i, user_id in enumerate(self.unique_user_ids)}
+
+        self.unique_movie_ids = self.ratings_data["movie_id"].unique()
+        self.movie_id_to_index = {movie_id: i for i, movie_id in enumerate(self.unique_movie_ids)}
+
     def __len__(self) -> int:
         return len(self.ratings)
     
     def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor]:
         user_id, movie_id, rating = self.ratings.iloc[idx][["user_id", "movie_id", "rating"]]
 
-        return torch.tensor([user_id - 1, movie_id - 1]), torch.tensor(rating / 5.0)
+        user_id = self.user_id_to_idx[user_id]
+        movie_id = self.movie_id_to_index[movie_id]
+
+        return torch.tensor([user_id, movie_id]), torch.tensor(rating / 5.0)
     
 class EncoderDataset(Dataset):
     def __init__(self, ratings_data: pd.DataFrame, request_data: pd.DataFrame) -> None:
         self.ratings_data = ratings_data
         self.request_data = request_data
 
-        self.unique_movie_ids = self.request_data["movie_id"].unique()
-        self.movie_id_to_idx = {movie_id: i for i, movie_id in enumerate(self.unique_movie_ids)}
+        self.unique_user_ids = self.ratings_data["user_id"].unique()
+        self.user_id_to_idx = {user_id: i for i, user_id in enumerate(self.unique_user_ids)}
+
+        self.unique_movie_ids = self.ratings_data["movie_id"].unique()
+        self.movie_id_to_index = {movie_id: i for i, movie_id in enumerate(self.unique_movie_ids)}
 
         self.num_movies = len(self.request_data)
 
@@ -35,6 +47,8 @@ class EncoderDataset(Dataset):
 
     def __getitem__(self, idx: int) -> Tuple[Tuple[Tensor, int], Tuple[str, int], Tuple[str, int]]:
         user_id, movie_id, rating = self.ratings_data.iloc[idx][["user_id", "movie_id", "rating"]]
+        
+        user_id, movie_id = int(user_id), int(movie_id)
 
         anchor_requests = self.request_data.loc[movie_id]["requests"]
 
@@ -46,10 +60,11 @@ class EncoderDataset(Dataset):
 
         negative_request = random.choice(negative_requests)
 
-        anchor_id = self.movie_id_to_idx[movie_id]
-        negative_id = self.movie_id_to_idx[negative_movie_id]
+        user_id = self.user_id_to_idx[user_id]
+        anchor_id = self.movie_id_to_index[movie_id]
+        negative_id = self.movie_id_to_index[negative_movie_id]
 
-        return torch.tensor([user_id - 1, anchor_id]), torch.tensor(rating / 5.0), (anchor_request, anchor_id), (negative_request, negative_id)
+        return torch.tensor([user_id, anchor_id]), torch.tensor(rating / 5.0), (anchor_request, anchor_id), (negative_request, negative_id)
 
 def train_test_split_requests(requests: pd.DataFrame, train_size: float) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
