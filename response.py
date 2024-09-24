@@ -45,4 +45,11 @@ class Response:
         top_movie_id = top_k_movie_ids[top_movie_index]
         top_movie_title = top_k_movies.iloc[top_movie_index]["movie_title"]
 
-        return top_movie_id, top_movie_title
+        # Craft the response
+        response = self.__craft_response(top_movie_id, top_movie_title)
+
+        return response
+
+    def __craft_response(self, movie_id, movie_title):
+        # Temprorary response, replace with LLM
+        return f"The movie with the highest predicted rating is {movie_title} with movie_id {movie_id}."
