@@ -27,22 +27,19 @@ pip install .
 
 4. Download MovieLens and place it in `data/ml-20m/`:
 ```bash
-mkdir data
-cd data
-wget https://files.grouplens.org/datasets/movielens/ml-20m.zip
-unzip ml-20m.zip
-rm ml-20m.zip
-cd ..
+bash fetch_data.bsh
 ```
 
-
-4. Ensure you have access to 
+5. Preprocess the data
+```bash
+python preprocess.py
+```
 
 ## Training
 
 To jointly train the encoder and recommender:
 
-1. Ensure you have access to all of the LLM's used in `simulate_requests.py`, and that you are logged into hugginface:
+1. Ensure you have access to all of the LLM's used in `simulate_requests.py`, and that you are logged into huggingface:
 ```bash
 huggingface-cli login
 ```
