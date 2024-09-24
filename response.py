@@ -6,6 +6,9 @@ from model.encoder import Encoder
 from model.recommender import DeepFM
 from utils.misc import cosine_distance
 
+import json
+from llamaapi import LlamaAPI
+
 
 class Response:
     def __init__(self, encoder_path, recommender_path, device, dataset, offset):
@@ -51,5 +54,52 @@ class Response:
         return response
 
     def __craft_response(self, movie_id, movie_title):
-        # Temprorary response, replace with LLM
+        llama = LlamaAPI("api_token")
+
+        api_request_json = {
+            "messages": [
+                {"role": "user", "content": "Can you recommend me a movie?"}
+            ],
+            "functions": [
+                {
+                    "name": "get_movie_recommendation",
+                    "description": "Recommend a movie based on the user's preferences",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "genre": {
+                                "type": "string",
+                                "description": "The genre of the movie, e.g. Action, Romance, Comedy, Sci-Fi",
+                            },
+                            "year": {
+                                "type": "number",
+                                "description": "The year of the movie's release, e.g. 1994, 2020",
+                            },
+                            "title": {
+                                "type": "string",
+                                "description": "The title of the movie to recommend",
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "A brief description of the movie",
+                            }
+                        },
+                    },
+                    "required": ["title", "description"]
+                }
+            ],
+            "stream": False,
+            "function_call": "get_movie_recommendation",
+        }
+
+        response = llama.run(api_request_json)
+
+        response_json = response.json()
+
+        movie_title = response_json['movie']['title']
+        movie_description = response_json['movie']['description']
+
+        recommendation = f"If you're in the mood for a great film, {movie_title} is a must-watch. {movie_description} Ready to dive into a fantastic movie experience?"
+
+        print(recommendation)
         return f"The movie with the highest predicted rating is {movie_title} with movie_id {movie_id}."
