@@ -9,7 +9,7 @@ from model.layers import MultiLayerPerceptron
 
 
 class Encoder(nn.Module):
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, weights: str = None, **kwargs) -> None:
         super().__init__()
 
         loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
@@ -19,6 +19,9 @@ class Encoder(nn.Module):
                 
         self.tokenizer: BertTokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         self.model: BertModel = BertModel.from_pretrained("bert-base-uncased", **kwargs)
+        
+        if weights is not None:
+            self.load_state_dict(torch.load(weights))
     
     def forward(self, requests: List[str]) -> Tensor:
         encoder_tokens = self.tokenizer(requests, padding=True, max_length=512, truncation=True, return_tensors="pt").to(self.model.device)

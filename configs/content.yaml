@@ -6,7 +6,7 @@ train:
   accumulation_steps: 1
 
 loss_weights:
-  id: 1.0
+  id: 0.1
   triplet: 10.0
   variance: 0.8
   invariance: 0.8
@@ -14,7 +14,7 @@ loss_weights:
 
 optimizer:
   encoder:
-    lr: 0.0001
+    lr: 0.00001
     weight_decay: 0.1
   classifier:
     lr: 0.001
@@ -25,3 +25,4 @@ optimizer:
 
 encoder:
   hidden_dropout_prob: 0.0
+  weights: NULL

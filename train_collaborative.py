@@ -58,7 +58,7 @@ optimizer = optim.AdamW([
 
 criterion = JointCriterion(loss_weights=args["loss_weights"], expander=expander, classifier=classifier)
 
-wandb.init(project="MovieLens", name="ml-20m", tags=("Encoder",), config=args)
+wandb.init(project="MovieLens", name="ml-20m", tags=("Encoder", "Collaborative"), config=args)
 
 train_collaborative(
     encoder=encoder,

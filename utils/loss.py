@@ -173,7 +173,7 @@ class EncoderCriterion(Criterion):
         distance_ap = cosine_distance(anchor, positive)
         distance_an = cosine_distance(anchor, negative)
 
-        return (distance_ap - distance_an).mean()
+        return F.relu(distance_ap - distance_an + self.margin).mean()
     
     def _get_id_loss(self, prediction_logits: Tensor, target_ids: Tensor) -> Tensor:
         return F.cross_entropy(prediction_logits, target_ids)

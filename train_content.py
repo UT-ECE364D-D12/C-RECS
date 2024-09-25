@@ -1,4 +1,3 @@
-
 import pandas as pd
 import torch
 import yaml
@@ -54,7 +53,7 @@ optimizer = optim.AdamW([
 
 criterion = EncoderCriterion(expander, classifier, loss_weights=args["loss_weights"])
 
-wandb.init(project="MovieLens", name="ml-20m no margin", tags=("Content",), config=args)
+wandb.init(project="MovieLens", name="ml-20m id", tags=("Encoder", "Content",), config=args)
 
 train_content(
     encoder=encoder,
