@@ -9,12 +9,12 @@ from torch.utils.data import DataLoader
 import wandb
 from model.encoder import Encoder, build_classifier, build_expander
 from model.recommender import DeepFM
-from utils.data import EncoderDataset, get_feature_sizes, train_test_split_requests
-from utils.loss import EncoderRecommenderCriterion
+from utils.data import CollaborativeDataset, get_feature_sizes, train_test_split_requests
+from utils.loss import JointCriterion
 from utils.misc import set_random_seed
-from utils.processor import train_encoder
+from utils.processor import train_collaborative
 
-args = yaml.safe_load(open("configs/encoder.yaml", "r"))
+args = yaml.safe_load(open("configs/collaborative.yaml", "r"))
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -37,7 +37,7 @@ train_ratings, test_ratings = train_test_split(ratings, train_size=0.8)
 
 train_ratings, test_ratings = train_ratings.reset_index(drop=True), test_ratings.reset_index(drop=True)
 
-train_dataset, test_dataset = EncoderDataset(train_ratings, train_requests), EncoderDataset(test_ratings, test_requests)
+train_dataset, test_dataset = CollaborativeDataset(train_ratings, train_requests), CollaborativeDataset(test_ratings, test_requests)
 
 train_dataloader, test_dataloader = DataLoader(train_dataset, batch_size=args["batch_size"], shuffle=True, num_workers=4, drop_last=True), DataLoader(test_dataset, batch_size=args["batch_size"], num_workers=4, drop_last=True)
 
@@ -56,11 +56,11 @@ optimizer = optim.AdamW([
     {"params": recommender.parameters(), **args["optimizer"]["recommender"]},
 ])
 
-criterion = EncoderRecommenderCriterion(expander, classifier, loss_weights=args["loss_weights"])
+criterion = JointCriterion(loss_weights=args["loss_weights"], expander=expander, classifier=classifier)
 
 wandb.init(project="MovieLens", name="ml-20m", tags=("Encoder",), config=args)
 
-train_encoder(
+train_collaborative(
     encoder=encoder,
     recommender=recommender,
     optimizer=optimizer,

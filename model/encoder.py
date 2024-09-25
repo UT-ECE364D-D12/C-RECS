@@ -21,7 +21,7 @@ class Encoder(nn.Module):
         self.model: BertModel = BertModel.from_pretrained("bert-base-uncased", **kwargs)
     
     def forward(self, requests: List[str]) -> Tensor:
-        encoder_tokens = self.tokenizer(requests, padding=True, return_tensors="pt").to(self.model.device)
+        encoder_tokens = self.tokenizer(requests, padding=True, max_length=512, truncation=True, return_tensors="pt").to(self.model.device)
 
         batch_encoded_requests = self.model(**encoder_tokens)
 

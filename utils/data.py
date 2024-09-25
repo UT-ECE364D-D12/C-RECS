@@ -29,7 +29,7 @@ class RatingsDataset(Dataset):
 
         return torch.tensor([user_id, movie_id]), torch.tensor(rating / 5.0)
     
-class EncoderDataset(Dataset):
+class CollaborativeDataset(Dataset):
     def __init__(self, ratings_data: pd.DataFrame, request_data: pd.DataFrame) -> None:
         self.ratings_data = ratings_data
         self.request_data = request_data
@@ -65,6 +65,34 @@ class EncoderDataset(Dataset):
         negative_id = self.movie_id_to_index[negative_movie_id]
 
         return torch.tensor([user_id, anchor_id]), torch.tensor(rating / 5.0), (anchor_request, anchor_id), (negative_request, negative_id)
+class ContentDataset(Dataset):
+    def __init__(self, descriptions_data: pd.DataFrame, request_data: pd.DataFrame) -> None:
+        self.descriptions_data = descriptions_data
+        self.request_data = request_data
+
+        self.unique_movie_ids = self.descriptions_data["movie_id"].unique()
+        self.movie_id_to_index = {movie_id: i for i, movie_id in enumerate(self.unique_movie_ids)}
+
+    def __len__(self) -> int:
+        return len(self.descriptions_data)
+
+    def __getitem__(self, idx: int) -> Tuple[Tuple[str, int], Tuple[str, int], Tuple[str, int]]:
+        movie_id, positive_description = self.descriptions_data.iloc[idx][["movie_id", "description"]]
+
+        anchor_requests = self.request_data.loc[movie_id]["requests"]
+
+        anchor_request = random.choice(anchor_requests)
+        
+        negative_movie_id = random.choice([i for i in self.unique_movie_ids if i != movie_id])
+
+        negative_requests = self.request_data.loc[negative_movie_id]["requests"]
+
+        negative_request = random.choice(negative_requests)
+
+        anchor_id = self.movie_id_to_index[movie_id]
+        negative_id = self.movie_id_to_index[negative_movie_id]
+
+        return (anchor_request, anchor_id), (positive_description, anchor_id), (negative_request, negative_id)
 
 def train_test_split_requests(requests: pd.DataFrame, train_size: float) -> Tuple[pd.DataFrame, pd.DataFrame]:
 

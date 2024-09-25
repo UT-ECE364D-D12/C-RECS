@@ -42,7 +42,7 @@ class RecommenderCriterion(Criterion):
 
         return losses
     
-class EncoderRecommenderCriterion(Criterion):
+class EncoderCriterion(Criterion):
     def __init__(self, expander: nn.Module, classifier: nn.Module, margin: float = 1.0, gamma: float = 1.0, loss_weights: Dict[str, float] = {}, max_rank: int = 50) -> None:
         super().__init__()
 
@@ -53,7 +53,7 @@ class EncoderRecommenderCriterion(Criterion):
         self.loss_weights = loss_weights
         self.max_rank = max_rank
     
-    def forward(self, rec_predictions: Tensor, rec_targets: Tensor, anchor: Tuple[Tensor, Tensor], positive: Tuple[Tensor, Tensor], negative: Tuple[Tensor, Tensor]) -> Dict[str, Tensor]:
+    def forward(self, anchor: Tuple[Tensor, Tensor], positive: Tuple[Tensor, Tensor], negative: Tuple[Tensor, Tensor]) -> Dict[str, Tensor]:
         anchor_embeddings, anchor_ids = anchor
         positive_embeddings, positive_ids = positive
         negative_embeddings, negative_ids = negative
@@ -64,8 +64,6 @@ class EncoderRecommenderCriterion(Criterion):
         
         self._update_metrics((anchor_embeddings, prediction_anchor_logits, anchor_ids), (positive_embeddings, prediction_positive_logits, positive_ids), (negative_embeddings, prediction_negative_logits, negative_ids))
         
-        mse_loss = F.mse_loss(rec_predictions, rec_targets)
-
         triplet_loss = self._get_triplet_loss(anchor_embeddings, positive_embeddings, negative_embeddings)
 
         id_loss = (self._get_id_loss(prediction_anchor_logits, anchor_ids) + self._get_id_loss(prediction_positive_logits, positive_ids) + self._get_id_loss(prediction_negative_logits, negative_ids)) / 3
@@ -79,7 +77,6 @@ class EncoderRecommenderCriterion(Criterion):
         covariance_loss = (self._get_covariance_loss(anchor_embeddings) + self._get_covariance_loss(positive_embeddings) + self._get_covariance_loss(negative_embeddings)) / 3
 
         losses = {
-            "mse": mse_loss,
             "triplet": triplet_loss,
             "id": id_loss,
             "variance": variance_loss,
@@ -176,7 +173,7 @@ class EncoderRecommenderCriterion(Criterion):
         distance_ap = cosine_distance(anchor, positive)
         distance_an = cosine_distance(anchor, negative)
 
-        return F.relu(distance_ap - distance_an + self.margin).mean()
+        return (distance_ap - distance_an).mean()
     
     def _get_id_loss(self, prediction_logits: Tensor, target_ids: Tensor) -> Tensor:
         return F.cross_entropy(prediction_logits, target_ids)
@@ -210,3 +207,26 @@ class EncoderRecommenderCriterion(Criterion):
         cov_loss = cov.fill_diagonal_(0.0).pow(2).sum() / x.shape[1]
 
         return cov_loss
+
+class JointCriterion(nn.Module):
+    def __init__(self, loss_weights: Dict[str, float] = {}, **kwargs) -> None:
+        super().__init__()
+
+        self.loss_weights = loss_weights
+
+        self.recommender_criterion = RecommenderCriterion()
+
+        self.encoder_criterion = EncoderCriterion(**kwargs)
+
+    def forward(self, rec_predictions: Tensor, rec_targets: Tensor, anchor: Tuple[Tensor, Tensor], positive: Tuple[Tensor, Tensor], negative: Tuple[Tensor, Tensor]) -> Dict[str, Tensor]:
+        recommender_losses = self.recommender_criterion(rec_predictions, rec_targets)
+        del recommender_losses["overall"]
+
+        encoder_losses = self.encoder_criterion(anchor, positive, negative)
+        del encoder_losses["overall"]
+
+        losses = {**recommender_losses, **encoder_losses}
+
+        losses["overall"] = sum(losses[loss_name] * self.loss_weights.get(loss_name, 1) for loss_name in losses)
+
+        return losses
