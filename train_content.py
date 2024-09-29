@@ -41,9 +41,9 @@ train_dataloader, test_dataloader = DataLoader(train_dataset, batch_size=args["b
 
 encoder = Encoder(**args["encoder"]).to(device)
 
-expander = build_expander(embed_dim=768, width=2).to(device)
+expander = build_expander(embed_dim=encoder.embed_dim, width=2).to(device)
 
-classifier = build_classifier(embed_dim=768, num_classes=requests["movie_id"].nunique()).to(device)
+classifier = build_classifier(embed_dim=encoder.embed_dim, num_classes=requests["movie_id"].nunique()).to(device)
 
 optimizer = optim.AdamW([
     {"params": encoder.parameters(), **args["optimizer"]["encoder"]},
@@ -51,9 +51,9 @@ optimizer = optim.AdamW([
     {"params": classifier.parameters(), **args["optimizer"]["classifier"]},
 ])
 
-criterion = EncoderCriterion(expander, classifier, loss_weights=args["loss_weights"])
+criterion = EncoderCriterion(expander, classifier, **args["criterion"])
 
-wandb.init(project="MovieLens", name="ml-20m id", tags=("Encoder", "Content",), config=args)
+wandb.init(project="MovieLens", name=args["name"], tags=("Encoder", "Content",), config=args)
 
 train_content(
     encoder=encoder,

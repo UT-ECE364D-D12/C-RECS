@@ -1,4 +1,3 @@
-
 import pandas as pd
 import torch
 import yaml
@@ -45,9 +44,9 @@ encoder = Encoder(**args["encoder"]).to(device)
 
 recommender = DeepFM(feature_dims=get_feature_sizes(ratings), **args["recommender"]).to(device)
 
-expander = build_expander(embed_dim=768, width=2).to(device)
+expander = build_expander(embed_dim=encoder.embed_dim, width=2).to(device)
 
-classifier = build_classifier(embed_dim=768, num_classes=requests["movie_id"].nunique()).to(device)
+classifier = build_classifier(embed_dim=encoder.embed_dim, num_classes=requests["movie_id"].nunique()).to(device)
 
 optimizer = optim.AdamW([
     {"params": encoder.parameters(), **args["optimizer"]["encoder"]},

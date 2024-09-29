@@ -1,21 +1,27 @@
+name: "Processed ml-20m"
 random_seed: 42
 batch_size: 16
 
 train:
-  max_epochs: 5
+  max_epochs: 20
   accumulation_steps: 1
 
-loss_weights:
-  id: 0.1
-  triplet: 10.0
-  variance: 0.8
-  invariance: 0.8
-  covariance: 0.08
+criterion:
+  triplet_margin: 1.0 
+  focal_gamma: 0.0
+  vicreg_gamma: 1.0
+  max_rank: 50
+  loss_weights:
+    id: 0.1
+    triplet: 10.0
+    variance: 0.8
+    invariance: 0.8
+    covariance: 0.08
 
 optimizer:
   encoder:
-    lr: 0.00001
-    weight_decay: 0.1
+    lr: 0.00005
+    weight_decay: 0.01
   classifier:
     lr: 0.001
     weight_decay: 0.01
@@ -24,5 +30,6 @@ optimizer:
     weight_decay: 0.01
 
 encoder:
+  model_name: "bert-base-uncased"
   hidden_dropout_prob: 0.0
   weights: NULL

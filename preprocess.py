@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pandas as pd
 
@@ -34,6 +36,20 @@ users = np.random.choice(ratings["user_id"].unique(), 2000, replace=False)
 ratings = ratings[ratings["user_id"].isin(users)]
 
 movies = movies[movies["movie_id"].isin(ratings["movie_id"])]
+
+if os.path.exists("data/ml-20m/requests.csv"):
+    requests = pd.read_csv("data/ml-20m/requests.csv")
+
+    requests = requests[requests["movie_id"].isin(movies["movie_id"])]
+    
+    requests.to_csv("data/ml-20m/requests.csv", index=False)
+
+if os.path.exists("data/ml-20m/descriptions.csv"):
+    descriptions = pd.read_csv("data/ml-20m/descriptions.csv")
+
+    descriptions = descriptions[descriptions["movie_id"].isin(movies["movie_id"])]
+
+    descriptions.to_csv("data/ml-20m/descriptions.csv", index=False)
 
 ratings.to_csv("data/ml-20m/ratings.csv", index=False)
 

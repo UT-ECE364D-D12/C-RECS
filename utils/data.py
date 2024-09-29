@@ -93,6 +93,20 @@ class ContentDataset(Dataset):
         negative_id = self.movie_id_to_index[negative_movie_id]
 
         return (anchor_request, anchor_id), (positive_description, anchor_id), (negative_request, negative_id)
+class DescriptionsDataset(Dataset):
+    def __init__(self, descriptions_data: pd.DataFrame) -> None:
+        self.descriptions_data = descriptions_data
+
+        self.unique_movie_ids = self.descriptions_data["movie_id"].unique()
+        self.movie_id_to_index = {movie_id: i for i, movie_id in enumerate(self.unique_movie_ids)}
+
+    def __len__(self) -> int:
+        return len(self.descriptions_data)
+
+    def __getitem__(self, idx: int) -> Tuple[int, str]:
+        movie_id, description = self.descriptions_data.iloc[idx][["movie_id", "description"]]
+
+        return (int(movie_id), str(description))
 
 def train_test_split_requests(requests: pd.DataFrame, train_size: float) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
