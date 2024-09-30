@@ -61,16 +61,15 @@ class Response:
 
         # Get the movie with the top rating
         top_movie_index = torch.argmax(ratings).item()
-        top_movie_id = top_k_movie_ids[top_movie_index]
         top_movie_title = top_k_movies.iloc[top_movie_index]["movie_title"]
 
         # Craft the response
-        response = self.__craft_response(query, top_movie_id, top_movie_title, **kwargs)
+        response = self.__craft_response(query, top_movie_title, **kwargs)
 
         return response
 
     def __craft_response(
-        self, query, movie_id: int, movie_title: str, model_name: str, split_string: str
+        self, query, movie_title: str, model_name: str, split_string: str
     ) -> str:
 
         # Build the language model
@@ -78,8 +77,12 @@ class Response:
         language_model, language_tokenizer = build_language_model(model_name=model_name)
 
         # Create a prompt for the movie
-        prompt = f"Create a response the user query: '{query}' with the movie '{movie_title}', make it concise!"
-        chat = [{"role": "user", "content": prompt}]
+        chat = [
+            {
+                "role": "user",
+                "content": f"You are a response generator that generates responces to queries for recommendations. I will give you a query and a recommendation, and you will generate a response based on the query. Please reply with only the response, no preamble, and no quotations on the response. The user query was: '{query}'. Create a response with the movie '{movie_title}'. Make the response friendly and don't include any spoilers.",
+            },
+        ]
         prompt = language_tokenizer.apply_chat_template(
             chat, tokenize=False, add_generation_prompt=True
         )
