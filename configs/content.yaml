@@ -1,4 +1,4 @@
-name: "Processed ml-20m"
+name: "Processed ml-20m All Requests"
 random_seed: 42
 batch_size: 16
 
@@ -20,7 +20,7 @@ criterion:
 
 optimizer:
   encoder:
-    lr: 0.00005
+    lr: 0.00001
     weight_decay: 0.01
   classifier:
     lr: 0.001

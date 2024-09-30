@@ -70,18 +70,23 @@ class ContentDataset(Dataset):
         self.descriptions_data = descriptions_data
         self.request_data = request_data
 
+        self.num_movies = len(self.descriptions_data)
+        self.num_requests_per_movie = len(self.request_data.iloc[0]["requests"])        
+
         self.unique_movie_ids = self.descriptions_data["movie_id"].unique()
         self.movie_id_to_index = {movie_id: i for i, movie_id in enumerate(self.unique_movie_ids)}
 
     def __len__(self) -> int:
-        return len(self.descriptions_data)
+        return self.num_movies * self.num_requests_per_movie
 
     def __getitem__(self, idx: int) -> Tuple[Tuple[str, int], Tuple[str, int], Tuple[str, int]]:
-        movie_id, positive_description = self.descriptions_data.iloc[idx][["movie_id", "description"]]
+        movie_idx, request_idx = divmod(idx, self.num_requests_per_movie)
+
+        movie_id, positive_description = self.descriptions_data.iloc[movie_idx][["movie_id", "description"]]
 
         anchor_requests = self.request_data.loc[movie_id]["requests"]
 
-        anchor_request = random.choice(anchor_requests)
+        anchor_request = anchor_requests[request_idx]
         
         negative_movie_id = random.choice([i for i in self.unique_movie_ids if i != movie_id])
 
