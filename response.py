@@ -40,47 +40,45 @@ class Response:
         self.device = device
 
     def get_response(self, query: str, user_id: int, top_k: int = 20, **kwargs):
-        # Get the top k movies
+        # Get the top k items
         query_embedding = self.encoder(query)
         distances = cosine_distance(query_embedding, self.data_embeddings)
         _, top_k_indicies = torch.topk(distances, top_k, largest=False)
         top_k_indicies = top_k_indicies.cpu().numpy()
 
-        # Get top k movie_id and movie_title pair from the dataset
-        top_k_movies = self.item_data.iloc[top_k_indicies]
-        top_k_movie_ids = top_k_movies["movie_id"].values
+        # Get top k items and id pair from the dataset
+        top_k_items = self.item_data.iloc[top_k_indicies]
+        top_k_ids = top_k_items["movie_id"].values
 
-        # Make user_id and movie_id tensor pairs
-        input_pairs = torch.tensor(
-            [[user_id, movie_id] for movie_id in top_k_movie_ids]
-        )
+        # Make user_id and item_id tensor pairs
+        input_pairs = torch.tensor([[user_id, item_id] for item_id in top_k_ids])
         input_pairs = input_pairs.to(self.device)
 
-        # Get the predicted ratings for the top k movies
+        # Get the predicted ratings for the top k items
         ratings = self.recommender(input_pairs)
 
-        # Get the movie with the top rating
-        top_movie_index = torch.argmax(ratings).item()
-        top_movie_title = top_k_movies.iloc[top_movie_index]["movie_title"]
+        # Get the item with the top rating
+        top_item_index = torch.argmax(ratings).item()
+        top_item_name = top_k_items.iloc[top_item_index]["movie_title"]
 
         # Craft the response
-        response = self.__craft_response(query, top_movie_title, **kwargs)
+        response = self.__craft_response(query, top_item_name, **kwargs)
 
         return response
 
     def __craft_response(
-        self, query, movie_title: str, model_name: str, split_string: str
+        self, query, item_name: str, model_name: str, split_string: str
     ) -> str:
 
         # Build the language model
         model_name = model_name
         language_model, language_tokenizer = build_language_model(model_name=model_name)
 
-        # Create a prompt for the movie
+        # Create a prompt for the item
         chat = [
             {
                 "role": "user",
-                "content": f"You are a response generator that generates responces to queries for recommendations. I will give you a query and a recommendation, and you will generate a response based on the query. Please reply with only the response, no preamble, and no quotations on the response. The user query was: '{query}'. Create a response with the movie '{movie_title}'. Make the response friendly and don't include any spoilers.",
+                "content": f"You are a response generator that generates responces to queries for recommendations. I will give you a query and a recommendation, and you will generate a response based on the query. Please reply with only the response, no preamble, and no quotations on the response. The user query was: '{query}'. Create a response with the item '{item_name}'. Make the response friendly and don't include any spoilers.",
             },
         ]
         prompt = language_tokenizer.apply_chat_template(
