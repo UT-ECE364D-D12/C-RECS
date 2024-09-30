@@ -65,6 +65,7 @@ class CollaborativeDataset(Dataset):
         negative_id = self.movie_id_to_index[negative_movie_id]
 
         return torch.tensor([user_id, anchor_id]), torch.tensor(rating / 5.0), (anchor_request, anchor_id), (negative_request, negative_id)
+        
 class ContentDataset(Dataset):
     def __init__(self, descriptions_data: pd.DataFrame, request_data: pd.DataFrame) -> None:
         self.descriptions_data = descriptions_data
