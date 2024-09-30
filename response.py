@@ -12,24 +12,28 @@ class Response:
     def __init__(
         self, encoder_path, recommender_path, device, item_data, rating_data, offset
     ):
-        self.recommender = DeepFM(
-            feature_dims=get_feature_sizes(rating_data),
-            embed_dim=768,
-            mlp_dims=(16, 16),
-            dropout=0.8,
-        ).to(device)
+        self.recommender = (
+            DeepFM(
+                feature_dims=get_feature_sizes(rating_data),
+                embed_dim=768,
+                mlp_dims=(16, 16),
+                dropout=0.8,
+            )
+            .to(device)
+            .eval()
+        )
         self.recommender.load_state_dict(
             torch.load(recommender_path, map_location=device)
         )
         self.data_embeddings = torch.load(recommender_path, map_location=device)[
             "embedding.embedding.weight"
-        ][943:]
-        self.encoder = Encoder().to(device)
+        ][offset:]
+        self.encoder = Encoder().to(device).eval()
         self.encoder.load_state_dict(torch.load(encoder_path, map_location=device))
         self.dataset = item_data
         self.device = device
 
-    def get_response(self, query, user_id, top_k=20):
+    def get_response(self, query, user_id, top_k=20, **kwargs):
         query_embedding = self.encoder(query)
         distances = cosine_distance(query_embedding, self.data_embeddings)
         _, top_k_indicies = torch.topk(distances, top_k, largest=False)
@@ -54,18 +58,20 @@ class Response:
         top_movie_title = top_k_movies.iloc[top_movie_index]["movie_title"]
 
         # Craft the response
-        response = self.__craft_response(query, top_movie_id, top_movie_title)
+        response = self.__craft_response(query, top_movie_id, top_movie_title, **kwargs)
 
         return response
 
-    def __craft_response(self, query, movie_id: int, movie_title: str) -> str:
+    def __craft_response(
+        self, query, movie_id: int, movie_title: str, model_name, split_string
+    ) -> str:
 
         # Build the language model
-        model_name = "google/gemma-7b-it"
+        model_name = model_name
         language_model, language_tokenizer = build_language_model(model_name=model_name)
 
         # Create a prompt for the movie
-        prompt = f"Create a response the user query: '{query}' with the movie '{movie_title}'"
+        prompt = f"Create a response the user query: '{query}' with the movie '{movie_title}', make it concise!"
         chat = [{"role": "user", "content": prompt}]
         prompt = language_tokenizer.apply_chat_template(
             chat, tokenize=False, add_generation_prompt=True
@@ -85,13 +91,12 @@ class Response:
             pad_token_id=language_tokenizer.eos_token_id,
         )
 
-        SPLIT_STRING = "\nmodel\n"
         # Decode the request
         request = language_tokenizer.decode(
             request_tokens[0],
             skip_special_tokens=True,
             clean_up_tokenization_spaces=True,
-        ).split(SPLIT_STRING)[-1]
+        ).split(split_string)[-1]
 
         return request
 
@@ -145,11 +150,19 @@ if __name__ == "__main__":
         device="cuda",
         item_data=item_data,
         rating_data=rating_data,
-        offset=0,
+        offset=943,
     )
 
     # Get the response
     query = "I want to watch a romantic comedy."
     user_id = 1
-    response = response.get_response(query, user_id)
+    model_name = "google/gemma-7b-it"
+    split_string = "\nmodel\n"
+    response = response.get_response(
+        query,
+        user_id,
+        top_k=20,
+        model_name=model_name,
+        split_string=split_string,
+    )
     print(response)
