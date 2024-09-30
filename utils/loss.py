@@ -59,6 +59,12 @@ class EncoderCriterion(Criterion):
         positive_embeddings, positive_ids = positive
         negative_embeddings, negative_ids = negative
 
+        if torch.isnan(anchor_embeddings).any() or torch.isnan(positive_embeddings).any() or torch.isnan(negative_embeddings).any():
+            print("NaN detected")
+        
+        if torch.isnan(anchor_ids).any() or torch.isnan(positive_ids).any() or torch.isnan(negative_ids).any():
+            print("NaN detected")
+
         anchor_ids, positive_ids, negative_ids = anchor_ids.to(device := anchor_embeddings.device), positive_ids.to(device), negative_ids.to(device)
 
         prediction_anchor_logits, prediction_positive_logits, prediction_negative_logits = self.classifier(anchor_embeddings), self.classifier(positive_embeddings), self.classifier(negative_embeddings)
@@ -164,6 +170,9 @@ class EncoderCriterion(Criterion):
 
         prediction_id_scores, prediction_id_labels = prediction_id_probabilities.max(dim=-1)
 
+        if torch.isnan(target_ids).any() or torch.isnan(prediction_id_scores).any():
+            print("NaN detected")
+
         self.id_ap += average_precision_score(target_ids.detach().cpu().view(-1, 1), prediction_id_scores.detach().cpu().view(-1, 1))
 
         self.id_recall += recall_score(target_ids.cpu(), prediction_id_labels.cpu(), average="micro")
@@ -245,5 +254,5 @@ class JointCriterion(nn.Module):
     def reset_metrics(self) -> None:
         self.encoder_criterion.reset_metrics()
     
-    def get_metric(self) -> Dict[str, Union[int, float]]:
+    def get_metrics(self) -> Dict[str, Union[int, float]]:
         return self.encoder_criterion.get_metrics()

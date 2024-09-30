@@ -1,5 +1,8 @@
+from typing import Dict
+
 import torch
-from torch import nn, optim
+from torch import Tensor, nn, optim
+from torch.nn.utils.clip_grad import clip_grad_norm_
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -109,7 +112,11 @@ def train_content_one_epoch(
         positive_embeddings = encoder(positive_descriptions)
         negative_embeddings = encoder(negative_requests)
 
+        if torch.isnan(anchor_embeddings).any() or torch.isnan(positive_embeddings).any() or torch.isnan(negative_embeddings).any():
+            print("NaN detected")
+
         batch_losses = criterion((anchor_embeddings, anchor_ids), (positive_embeddings, positive_ids), (negative_embeddings, negative_ids))
+
 
         wandb.log({"Train": {"Loss": batch_losses}}, step=wandb.run.step + len(anchor_embeddings))
 
@@ -120,6 +127,7 @@ def train_content_one_epoch(
         loss.backward()
 
         if (i + 1) % accumulation_steps == 0:
+            clip_grad_norm_(encoder.parameters(), max_norm=1.0)
             optimizer.step()
             optimizer.zero_grad()
 
@@ -211,6 +219,9 @@ def evaluate_content_one_epoch(
             anchor_embeddings = encoder(anchor_requests)
             positive_embeddings = encoder(positive_descriptions)
             negative_embeddings = encoder(negative_requests)
+
+            if torch.isnan(anchor_embeddings).any() or torch.isnan(positive_embeddings).any() or torch.isnan(negative_embeddings).any():
+                print("NaN detected")
 
             batch_losses = criterion((anchor_embeddings, anchor_ids), (positive_embeddings, positive_ids), (negative_embeddings, negative_ids))
 

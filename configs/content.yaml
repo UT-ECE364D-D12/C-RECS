@@ -1,9 +1,9 @@
-name: "Processed ml-20m All Requests"
+name: "Processed ml-20m All Requests Clipping"
 random_seed: 42
 batch_size: 16
 
 train:
-  max_epochs: 20
+  max_epochs: 5
   accumulation_steps: 1
 
 criterion:
@@ -20,13 +20,13 @@ criterion:
 
 optimizer:
   encoder:
-    lr: 0.00001
+    lr: 0.000005
     weight_decay: 0.01
   classifier:
-    lr: 0.001
+    lr: 0.0001
     weight_decay: 0.01
   expander:
-    lr: 0.001
+    lr: 0.0001
     weight_decay: 0.01
 
 encoder:
