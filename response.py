@@ -10,7 +10,13 @@ from utils.misc import build_language_model, cosine_distance
 
 class Response:
     def __init__(
-        self, encoder_path, recommender_path, device, item_data, rating_data, offset
+        self,
+        encoder_path: str,
+        recommender_path: str,
+        device: str,
+        item_data: pd.DataFrame,
+        rating_data: pd.DataFrame,
+        offset: int,
     ):
         self.recommender = (
             DeepFM(
@@ -30,17 +36,18 @@ class Response:
         ][offset:]
         self.encoder = Encoder().to(device).eval()
         self.encoder.load_state_dict(torch.load(encoder_path, map_location=device))
-        self.dataset = item_data
+        self.item_data = item_data
         self.device = device
 
-    def get_response(self, query, user_id, top_k=20, **kwargs):
+    def get_response(self, query: str, user_id: int, top_k: int = 20, **kwargs):
+        # Get the top k movies
         query_embedding = self.encoder(query)
         distances = cosine_distance(query_embedding, self.data_embeddings)
         _, top_k_indicies = torch.topk(distances, top_k, largest=False)
         top_k_indicies = top_k_indicies.cpu().numpy()
 
         # Get top k movie_id and movie_title pair from the dataset
-        top_k_movies = self.dataset.iloc[top_k_indicies]
+        top_k_movies = self.item_data.iloc[top_k_indicies]
         top_k_movie_ids = top_k_movies["movie_id"].values
 
         # Make user_id and movie_id tensor pairs
@@ -63,7 +70,7 @@ class Response:
         return response
 
     def __craft_response(
-        self, query, movie_id: int, movie_title: str, model_name, split_string
+        self, query, movie_id: int, movie_title: str, model_name: str, split_string: str
     ) -> str:
 
         # Build the language model
@@ -136,6 +143,7 @@ if __name__ == "__main__":
         header=None,
     )
 
+    # Load the rating data
     rating_data = pd.read_csv(
         "data/ml-100k/u.data",
         sep="\t",
