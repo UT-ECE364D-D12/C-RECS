@@ -1,14 +1,15 @@
-from typing import Dict
-
+import pandas as pd
 import torch
-from torch import Tensor, nn, optim
+from sklearn.model_selection import train_test_split
+from torch import nn, optim
 from torch.nn.utils.clip_grad import clip_grad_norm_
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 import wandb
-from model.encoder import Encoder
+from model.encoder import Encoder, MultiLayerPerceptron
 from model.recommender import DeepFM
+from utils.data import ContentDataset, DescriptionsDataset, RequestsDataset, train_test_split_requests
 from utils.loss import EncoderCriterion, JointCriterion, RecommenderCriterion
 
 
@@ -91,6 +92,7 @@ def train_collaborative_one_epoch(
 
 def train_content_one_epoch(
     encoder: Encoder,
+    classifier: MultiLayerPerceptron,
     optimizer: optim.Optimizer,
     criterion: EncoderCriterion,
     dataloader: DataLoader,
@@ -98,7 +100,6 @@ def train_content_one_epoch(
     accumulation_steps: int = 1,
     device: str = "cpu"
 ) -> None:
-    criterion.reset_metrics()
     losses = {}
 
     encoder.train()
@@ -112,7 +113,11 @@ def train_content_one_epoch(
         positive_embeddings = encoder(positive_descriptions)
         negative_embeddings = encoder(negative_requests)
 
-        batch_losses = criterion((anchor_embeddings, anchor_ids), (positive_embeddings, positive_ids), (negative_embeddings, negative_ids))
+        anchor_logits = classifier(anchor_embeddings)
+        positive_logits = classifier(positive_embeddings)
+        negative_logits = classifier(negative_embeddings)
+
+        batch_losses = criterion((anchor_embeddings, anchor_logits, anchor_ids), (positive_embeddings, positive_logits, positive_ids), (negative_embeddings, negative_logits, negative_ids))
 
         wandb.log({"Train": {"Loss": batch_losses}}, step=wandb.run.step + len(anchor_embeddings))
 
@@ -126,10 +131,6 @@ def train_content_one_epoch(
             clip_grad_norm_(encoder.parameters(), max_norm=1.0)
             optimizer.step()
             optimizer.zero_grad()
-
-    metrics = criterion.get_metrics()
-
-    wandb.log({"Train": {"Metric": metrics}}, step=wandb.run.step)
 
 def evaluate_one_epoch(
     model: nn.Module,
@@ -196,8 +197,10 @@ def evaluate_collaborative_one_epoch(
 
 def evaluate_content_one_epoch(
     encoder: Encoder,
+    classifier: MultiLayerPerceptron,
     criterion: EncoderCriterion,
-    dataloader: DataLoader,
+    requests_dataloader: DataLoader,
+    
     epoch: int,
     device: str = "cpu",
 ) -> None:
@@ -216,7 +219,11 @@ def evaluate_content_one_epoch(
             positive_embeddings = encoder(positive_descriptions)
             negative_embeddings = encoder(negative_requests)
 
-            batch_losses = criterion((anchor_embeddings, anchor_ids), (positive_embeddings, positive_ids), (negative_embeddings, negative_ids))
+            anchor_logits = classifier(anchor_embeddings)
+            positive_logits = classifier(positive_embeddings)
+            negative_logits = classifier(negative_embeddings)
+
+            batch_losses = criterion((anchor_embeddings, anchor_logits, anchor_ids), (positive_embeddings, positive_logits, positive_ids), (negative_embeddings, negative_logits, negative_ids))
 
             losses = {k: losses.get(k, 0) + v.item() for k, v in batch_losses.items()}
 
@@ -258,15 +265,22 @@ def train_collaborative(
 
 def train_content(
     encoder: Encoder,
+    classifier: MultiLayerPerceptron,
     optimizer: optim.Optimizer,
     criterion: EncoderCriterion,
     train_dataloader: DataLoader,
     test_dataloader: DataLoader,
+    descriptions_dataloader: DataLoader,
     max_epochs: int,
     accumulation_steps: int = 1,
     device: str = "cpu",
 ) -> None:
+
     for epoch in range(max_epochs): 
-        train_content_one_epoch(encoder, optimizer, criterion, train_dataloader, epoch, accumulation_steps, device)
+        train_content_one_epoch(encoder, classifier, optimizer, criterion, train_dataloader, epoch, accumulation_steps, device)
         
-        evaluate_content_one_epoch(encoder, criterion, test_dataloader, epoch, device)
+        _, train_metrics = evaluate_content_one_epoch(encoder, classifier, criterion, train_dataloader, descriptions_dataloader, epoch, device)
+
+        test_losses, test_metrics = evaluate_content_one_epoch(encoder, classifier, criterion, test_dataloader, descriptions_dataloader, epoch, device)
+
+        wandb.log({"Train": {"Metric": train_metrics}, "Validation": {"Loss": test_losses, "Metric": test_metrics}}, step=wandb.run.step)

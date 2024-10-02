@@ -10,7 +10,6 @@ criterion:
   triplet_margin: 1.0 
   focal_gamma: 0.0
   vicreg_gamma: 1.0
-  max_rank: 50
   loss_weights:
     id: 0.1
     triplet: 10.0

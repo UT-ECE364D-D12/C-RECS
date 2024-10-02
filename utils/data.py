@@ -67,52 +67,58 @@ class CollaborativeDataset(Dataset):
         return torch.tensor([user_id, anchor_id]), torch.tensor(rating / 5.0), (anchor_request, anchor_id), (negative_request, negative_id)
         
 class ContentDataset(Dataset):
-    def __init__(self, descriptions_data: pd.DataFrame, request_data: pd.DataFrame) -> None:
-        self.descriptions_data = descriptions_data
-        self.request_data = request_data
+    def __init__(self, descriptions: pd.DataFrame, requests: pd.DataFrame) -> None:
+        self.descriptions = descriptions
+        self.requests = requests
 
-        self.num_movies = len(self.descriptions_data)
-        self.num_requests_per_movie = len(self.request_data.iloc[0]["requests"])        
+        self.num_movies = len(self.requests)
+        self.num_requests_per_movie = len(self.requests.iloc[0]["requests"])        
 
-        self.unique_movie_ids = self.descriptions_data["movie_id"].unique()
-        self.movie_id_to_index = {movie_id: i for i, movie_id in enumerate(self.unique_movie_ids)}
+        unique_item_ids = self.descriptions["movie_id"].unique()
+        self.item_id_to_unique_id = {movie_id: i for i, movie_id in enumerate(unique_item_ids)}
 
     def __len__(self) -> int:
         return self.num_movies * self.num_requests_per_movie
 
     def __getitem__(self, idx: int) -> Tuple[Tuple[str, int], Tuple[str, int], Tuple[str, int]]:
+        """
+        Returns an anchor, positive, and negative sample, each containing a description and an item id.
+        """
         movie_idx, request_idx = divmod(idx, self.num_requests_per_movie)
 
-        movie_id, positive_description = self.descriptions_data.iloc[movie_idx][["movie_id", "description"]]
-
-        anchor_requests = self.request_data.loc[movie_id]["requests"]
+        movie_id, anchor_requests = self.requests.iloc[movie_idx][["movie_id", "requests"]]
 
         anchor_request = anchor_requests[request_idx]
-        
-        negative_movie_id = random.choice([i for i in self.unique_movie_ids if i != movie_id])
 
-        negative_requests = self.request_data.loc[negative_movie_id]["requests"]
+        positive_description = self.descriptions.loc[movie_id]["description"]
+        
+        negative_movie_idx = random.choice([i for i in range(self.num_movies) if i != movie_idx])
+
+        negative_movie_id, negative_requests = self.requests.iloc[negative_movie_idx][["movie_id", "requests"]]
 
         negative_request = random.choice(negative_requests)
 
-        anchor_id = self.movie_id_to_index[movie_id]
-        negative_id = self.movie_id_to_index[negative_movie_id]
+        anchor_id = self.item_id_to_unique_id[movie_id]
+        negative_id = self.item_id_to_unique_id[negative_movie_id]
 
         return (anchor_request, anchor_id), (positive_description, anchor_id), (negative_request, negative_id)
+    
 class DescriptionsDataset(Dataset):
-    def __init__(self, descriptions_data: pd.DataFrame) -> None:
-        self.descriptions_data = descriptions_data
+    def __init__(self, descriptions: pd.DataFrame) -> None:
+        self.descriptions = descriptions
 
-        self.unique_movie_ids = self.descriptions_data["movie_id"].unique()
-        self.movie_id_to_index = {movie_id: i for i, movie_id in enumerate(self.unique_movie_ids)}
+        self.num_descriptions = len(self.descriptions)
+
+        unique_item_ids = self.descriptions["movie_id"].unique()
+        self.item_id_to_unique_id = {movie_id: i for i, movie_id in enumerate(unique_item_ids)}
 
     def __len__(self) -> int:
-        return len(self.descriptions_data)
+        return self.num_descriptions
 
     def __getitem__(self, idx: int) -> Tuple[int, str]:
-        movie_id, description = self.descriptions_data.iloc[idx][["movie_id", "description"]]
+        movie_id, description = self.descriptions.iloc[idx][["movie_id", "description"]]
 
-        return (int(movie_id), str(description))
+        return self.item_id_to_unique_id[movie_id], description
 
 def train_test_split_requests(requests: pd.DataFrame, **kwargs) -> Tuple[pd.DataFrame, pd.DataFrame]:
 

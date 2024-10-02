@@ -32,6 +32,9 @@ class Encoder(nn.Module):
         encoded_requests = batch_encoded_requests.last_hidden_state[:, 0]
 
         return encoded_requests
+    
+    def __call__(self, *args) -> Tensor:
+        return super().__call__(*args)
 
 def build_expander(embed_dim: int, width: float = 2.0, **kwargs) -> MultiLayerPerceptron:
     return MultiLayerPerceptron(input_dim=embed_dim, hidden_dims=[expander_dim := int(embed_dim * width), expander_dim], output_dim=expander_dim, **kwargs)
