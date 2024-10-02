@@ -1,9 +1,9 @@
-name: "Processed ml-20m All Requests Clipping"
+name: "ml-20m Positive Movies"
 random_seed: 42
 batch_size: 16
 
 train:
-  max_epochs: 5
+  max_epochs: 10
   accumulation_steps: 1
 
 criterion:

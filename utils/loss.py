@@ -59,12 +59,6 @@ class EncoderCriterion(Criterion):
         positive_embeddings, positive_ids = positive
         negative_embeddings, negative_ids = negative
 
-        if torch.isnan(anchor_embeddings).any() or torch.isnan(positive_embeddings).any() or torch.isnan(negative_embeddings).any():
-            print("NaN detected")
-        
-        if torch.isnan(anchor_ids).any() or torch.isnan(positive_ids).any() or torch.isnan(negative_ids).any():
-            print("NaN detected")
-
         anchor_ids, positive_ids, negative_ids = anchor_ids.to(device := anchor_embeddings.device), positive_ids.to(device), negative_ids.to(device)
 
         prediction_anchor_logits, prediction_positive_logits, prediction_negative_logits = self.classifier(anchor_embeddings), self.classifier(positive_embeddings), self.classifier(negative_embeddings)
@@ -126,6 +120,9 @@ class EncoderCriterion(Criterion):
         positive_embeddings, prediction_positive_logits, positive_ids = positive
         negative_embeddings, prediction_negative_logits, negative_ids = negative
 
+        # TODO: The way that we are calculating reid metrics is not really how it should be done.
+        # 1. We should be evaluating the model on the entire dataset, not just the batch.
+        # 2. Right now we are matching to requests and descriptions, in reality at inference time we will only be matching the request to the item descriptions.
         prediction_embeddings = torch.cat([anchor_embeddings, positive_embeddings, negative_embeddings])
         prediction_id_logits = torch.cat([prediction_anchor_logits, prediction_positive_logits, prediction_negative_logits])
         target_ids = torch.cat([anchor_ids, positive_ids, negative_ids])
@@ -169,9 +166,6 @@ class EncoderCriterion(Criterion):
         prediction_id_probabilities = prediction_id_logits.softmax(dim=-1)
 
         prediction_id_scores, prediction_id_labels = prediction_id_probabilities.max(dim=-1)
-
-        if torch.isnan(target_ids).any() or torch.isnan(prediction_id_scores).any():
-            print("NaN detected")
 
         self.id_ap += average_precision_score(target_ids.detach().cpu().view(-1, 1), prediction_id_scores.detach().cpu().view(-1, 1))
 

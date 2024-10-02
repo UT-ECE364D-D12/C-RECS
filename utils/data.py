@@ -114,10 +114,10 @@ class DescriptionsDataset(Dataset):
 
         return (int(movie_id), str(description))
 
-def train_test_split_requests(requests: pd.DataFrame, train_size: float) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def train_test_split_requests(requests: pd.DataFrame, **kwargs) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
     def split_request(row: pd.Series) -> pd.Series: 
-        train_req, test_req = train_test_split(row['request'], train_size=train_size)
+        train_req, test_req = train_test_split(row['request'], **kwargs)
 
         return pd.Series([train_req, test_req])
 

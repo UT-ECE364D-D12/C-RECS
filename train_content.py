@@ -27,7 +27,7 @@ requests = requests.groupby("movie_id").agg({
 
 requests.set_index("movie_id", inplace=True, drop=False)
 
-train_requests, test_requests = train_test_split_requests(requests, train_size=0.8)
+train_requests, test_requests = train_test_split_requests(requests, test_size=1)
 
 descriptions = pd.read_csv("data/ml-20m/descriptions.csv")
 

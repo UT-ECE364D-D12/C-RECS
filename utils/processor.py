@@ -112,11 +112,7 @@ def train_content_one_epoch(
         positive_embeddings = encoder(positive_descriptions)
         negative_embeddings = encoder(negative_requests)
 
-        if torch.isnan(anchor_embeddings).any() or torch.isnan(positive_embeddings).any() or torch.isnan(negative_embeddings).any():
-            print("NaN detected")
-
         batch_losses = criterion((anchor_embeddings, anchor_ids), (positive_embeddings, positive_ids), (negative_embeddings, negative_ids))
-
 
         wandb.log({"Train": {"Loss": batch_losses}}, step=wandb.run.step + len(anchor_embeddings))
 
@@ -220,9 +216,6 @@ def evaluate_content_one_epoch(
             positive_embeddings = encoder(positive_descriptions)
             negative_embeddings = encoder(negative_requests)
 
-            if torch.isnan(anchor_embeddings).any() or torch.isnan(positive_embeddings).any() or torch.isnan(negative_embeddings).any():
-                print("NaN detected")
-
             batch_losses = criterion((anchor_embeddings, anchor_ids), (positive_embeddings, positive_ids), (negative_embeddings, negative_ids))
 
             losses = {k: losses.get(k, 0) + v.item() for k, v in batch_losses.items()}
@@ -273,7 +266,7 @@ def train_content(
     accumulation_steps: int = 1,
     device: str = "cpu",
 ) -> None:
-    for epoch in range(max_epochs):
+    for epoch in range(max_epochs): 
         train_content_one_epoch(encoder, optimizer, criterion, train_dataloader, epoch, accumulation_steps, device)
         
         evaluate_content_one_epoch(encoder, criterion, test_dataloader, epoch, device)
