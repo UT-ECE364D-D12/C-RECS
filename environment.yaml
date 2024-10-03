@@ -1,4 +1,4 @@
-name: cers
+name: crecs
 channels:
   - conda-forge
   - pytorch

@@ -31,18 +31,21 @@ requests.set_index("movie_id", inplace=True, drop=False)
 
 ratings = pd.read_csv("data/ml-20m/ratings.csv", header=0, names=["user_id", "movie_id", "rating", "timestamp"]).astype({"user_id": int, "movie_id": int, "rating": float, "timestamp": int})
 
+user_id_to_unique_id = {user_id: i for i, user_id in enumerate(ratings["user_id"].unique())}
+item_id_to_unique_id = {movie_id: i for i, movie_id in enumerate(requests["movie_id"].unique())}
+
 train_requests, test_requests = train_test_split_requests(requests, train_size=0.8)
 train_ratings, test_ratings = train_test_split(ratings, train_size=0.8)
 
-train_dataset = CollaborativeDataset(train_ratings, train_requests)
+train_dataset = CollaborativeDataset(train_ratings, train_requests, user_id_to_unique_id, item_id_to_unique_id)
 train_dataloader= DataLoader(train_dataset, batch_size=args["batch_size"], shuffle=True, num_workers=4, drop_last=True)
 
-subset_indices = random.sample(range(len(train_dataset)), k=len(test_requests))
+test_dataset = CollaborativeDataset(test_ratings, test_requests, user_id_to_unique_id, item_id_to_unique_id)
+test_dataloader = DataLoader(test_dataset, batch_size=args["batch_size"], num_workers=4, drop_last=True)
+
+subset_indices = random.sample(range(len(train_dataset)), k=len(test_dataset))
 train_subset = Subset(train_dataset, subset_indices)
 train_subset_dataloader = DataLoader(train_subset, batch_size=args["batch_size"], shuffle=False, num_workers=4, drop_last=True)
-
-test_dataset = CollaborativeDataset(test_ratings, test_requests)
-test_dataloader = DataLoader(test_dataset, batch_size=args["batch_size"], num_workers=4, drop_last=True)
 
 encoder = Encoder(**args["encoder"]).to(device)
 
@@ -65,10 +68,12 @@ wandb.init(project="MovieLens", name="ml-20m", tags=("Encoder", "Collaborative")
 
 train(
     encoder=encoder,
+    classifier=classifier,
     recommender=recommender,
     optimizer=optimizer,
     criterion=criterion,
     train_dataloader=train_dataloader,
+    train_subset_dataloader=train_subset_dataloader,
     test_dataloader=test_dataloader,
     device=device,
     **args["train"]

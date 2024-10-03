@@ -1,5 +1,6 @@
 import random
-from typing import Tuple, List, Callable
+from typing import Dict, Tuple, List, Callable
+
 
 from tqdm import tqdm
 import pandas as pd
@@ -14,11 +15,11 @@ class RatingsDataset(Dataset):
     def __init__(self, ratings: pd.DataFrame) -> None:
         self.ratings = ratings
 
-        self.unique_user_ids = self.ratings_data["user_id"].unique()
-        self.user_id_to_idx = {user_id: i for i, user_id in enumerate(self.unique_user_ids)}
+        self.unique_user_ids = self.ratings["user_id"].unique()
+        self.user_id_to_unique_id = {user_id: i for i, user_id in enumerate(self.unique_user_ids)}
 
-        self.unique_movie_ids = self.ratings_data["movie_id"].unique()
-        self.movie_id_to_index = {movie_id: i for i, movie_id in enumerate(self.unique_movie_ids)}
+        self.unique_item_ids = self.ratings["movie_id"].unique()
+        self.item_id_to_unique_id = {movie_id: i for i, movie_id in enumerate(self.unique_item_ids)}
 
     def __len__(self) -> int:
         return len(self.ratings)
@@ -26,22 +27,20 @@ class RatingsDataset(Dataset):
     def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor]:
         user_id, movie_id, rating = self.ratings.iloc[idx][["user_id", "movie_id", "rating"]]
 
-        user_id = self.user_id_to_idx[user_id]
-        movie_id = self.movie_id_to_index[movie_id]
+        user_id = self.user_id_to_unique_id[user_id]
+        movie_id = self.item_id_to_unique_id[movie_id]
 
         return torch.tensor([user_id, movie_id]), torch.tensor(rating / 5.0)
     
 class CollaborativeDataset(Dataset):
-    def __init__(self, ratings_data: pd.DataFrame, request_data: pd.DataFrame) -> None:
+    def __init__(self, ratings_data: pd.DataFrame, request_data: pd.DataFrame, user_id_to_unique_id: Dict[int, int], movie_id_to_unique_id: Dict[int, int]) -> None:
         self.ratings_data = ratings_data
         self.request_data = request_data
 
-        self.unique_user_ids = self.ratings_data["user_id"].unique()
-        self.user_id_to_idx = {user_id: i for i, user_id in enumerate(self.unique_user_ids)}
+        self.user_id_to_unique_id = user_id_to_unique_id
+        self.movie_id_to_unique_id = movie_id_to_unique_id
 
         self.unique_movie_ids = self.ratings_data["movie_id"].unique()
-        self.movie_id_to_index = {movie_id: i for i, movie_id in enumerate(self.unique_movie_ids)}
-
         self.num_movies = len(self.request_data)
 
     def __len__(self) -> int:
@@ -62,9 +61,9 @@ class CollaborativeDataset(Dataset):
 
         negative_request = random.choice(negative_requests)
 
-        user_id = self.user_id_to_idx[user_id]
-        anchor_id = self.movie_id_to_index[movie_id]
-        negative_id = self.movie_id_to_index[negative_movie_id]
+        user_id = self.user_id_to_unique_id[user_id]
+        anchor_id = self.movie_id_to_unique_id[movie_id]
+        negative_id = self.movie_id_to_unique_id[negative_movie_id]
 
         return torch.tensor([user_id, anchor_id]), torch.tensor(rating / 5.0), (anchor_request, anchor_id), (negative_request, negative_id)
         
