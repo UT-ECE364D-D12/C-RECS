@@ -10,7 +10,12 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, MistralForCausalLM
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    BitsAndBytesConfig,
+    MistralForCausalLM,
+)
 
 from utils.data import SimulatorDataset, simulate
 from utils.misc import build_language_model
@@ -28,7 +33,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--dataset_path', type=str, default="data/ml-20m/movies.csv", help='Path to the dataset')
-    parser.add_argument('--output_path', type=str, default="data/ml-20m/requests.csv", help='Path to save the requests')
+    parser.add_argument('--output_path', type=str, default="data/ml-20m/descriptions.csv", help='Path to save the descriptions')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size for the dataloader')
 
     args = parser.parse_args()
