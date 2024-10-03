@@ -1,13 +1,12 @@
 import random
-from typing import Dict, Tuple, List, Callable
+from typing import Callable, Dict, List, Tuple
 
-
-from tqdm import tqdm
 import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split
 from torch import Tensor
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader, Dataset
+from tqdm import tqdm
 from transformers import AutoTokenizer, MistralForCausalLM
 
 
@@ -46,7 +45,7 @@ class CollaborativeDataset(Dataset):
     def __len__(self) -> int:
         return len(self.ratings_data)
 
-    def __getitem__(self, idx: int) -> Tuple[Tuple[Tensor, int], Tuple[str, int], Tuple[str, int]]:
+    def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor, Tuple[str, int], Tuple[str, int], int]:
         user_id, movie_id, rating = self.ratings_data.iloc[idx][["user_id", "movie_id", "rating"]]
         
         user_id, movie_id = int(user_id), int(movie_id)
@@ -57,15 +56,11 @@ class CollaborativeDataset(Dataset):
         
         negative_movie_id = random.choice([i for i in self.unique_movie_ids if i != movie_id])
 
-        negative_requests = self.request_data.loc[negative_movie_id]["requests"]
-
-        negative_request = random.choice(negative_requests)
-
         user_id = self.user_id_to_unique_id[user_id]
         anchor_id = self.movie_id_to_unique_id[movie_id]
         negative_id = self.movie_id_to_unique_id[negative_movie_id]
 
-        return torch.tensor([user_id, anchor_id]), torch.tensor(rating / 5.0), (anchor_request, anchor_id), (negative_request, negative_id)
+        return torch.tensor([user_id, anchor_id]), torch.tensor(rating / 5.0), (anchor_request, anchor_id), (negative_id)
         
 class ContentDataset(Dataset):
     def __init__(self, descriptions: pd.DataFrame, requests: pd.DataFrame) -> None:

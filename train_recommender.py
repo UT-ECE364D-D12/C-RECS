@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 import torch
 import yaml
@@ -43,4 +45,5 @@ train(
 
 wandb.finish()
 
+os.makedirs("weights/recommender", exist_ok=True)
 torch.save(model.state_dict(), "weights/recommender/deepfm.pt")

@@ -35,11 +35,11 @@ def train_one_epoch(
         rec_predictions = recommender(rec_features)
 
         anchor_requests, anchor_ids = anchor 
-        negative_requests, negative_ids = negative 
+        negative_ids = negative 
 
         anchor_embeddings = encoder(anchor_requests)
         positive_embeddings = recommender.embedding.embedding.weight[recommender.embedding.offsets[1] + anchor_ids]
-        negative_embeddings = encoder(negative_requests)
+        negative_embeddings = recommender.embedding.embedding.weight[recommender.embedding.offsets[1] + negative_ids]
 
         anchor_logits = classifier(anchor_embeddings)
         positive_logits = classifier(positive_embeddings)
@@ -84,11 +84,11 @@ def evaluate(
             rec_predictions = recommender(rec_features)
 
             anchor_requests, anchor_ids = anchor 
-            negative_requests, negative_ids = negative 
+            negative_ids = negative 
 
             anchor_embeddings = encoder(anchor_requests)
             positive_embeddings = recommender.embedding.embedding.weight[recommender.embedding.offsets[1] + anchor_ids]
-            negative_embeddings = encoder(negative_requests)
+            negative_embeddings = recommender.embedding.embedding.weight[recommender.embedding.offsets[1] + negative_ids]
 
             anchor_logits = classifier(anchor_embeddings)
             positive_logits = classifier(positive_embeddings)

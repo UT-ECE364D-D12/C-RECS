@@ -1,3 +1,4 @@
+import os
 import random
 
 import pandas as pd
@@ -80,4 +81,5 @@ train(
 
 wandb.finish()
 
+os.makedirs("weights/content", exist_ok=True)
 torch.save(encoder.state_dict(), "weights/content/encoder.pt")

@@ -1,9 +1,9 @@
 name: "ml-20m"
 random_seed: 42
-batch_size: 32
+batch_size: 96
 
 train:
-  max_epochs: 2
+  max_epochs: 5
   accumulation_steps: 1
 
 criterion:
