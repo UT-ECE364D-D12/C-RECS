@@ -9,6 +9,8 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 from torchmetrics.functional import pairwise_cosine_similarity
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+
 
 
 # Modified from Pytorch to handle per-parameter group learning rates
@@ -57,3 +59,24 @@ def set_random_seed(seed: int) -> None:
     
     os.environ['PYTHONHASHSEED'] = str(seed) 
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+
+
+def build_language_model(model_name: str = "google/gemma-7b-it") -> tuple[AutoModelForCausalLM, AutoTokenizer]:
+    config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_use_double_quant=False,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.float16,
+    )
+
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name, 
+        low_cpu_mem_usage=True, 
+        quantization_config=config, 
+        attn_implementation="flash_attention_2"
+    )
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    tokenizer.pad_token = tokenizer.eos_token if tokenizer.pad_token is None else tokenizer.pad_token
+
+    return model, tokenizer

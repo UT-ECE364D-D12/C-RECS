@@ -12,6 +12,9 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, MistralForCausalLM
 
+from utils.data import SimulatorDataset, simulate
+from utils.misc import build_language_model
+
 MODEL_NAMES = ["mistralai/Mistral-7B-Instruct-v0.2", "google/gemma-7b-it"]
 SPLIT_STRINGS = ["[/INST] ", "\nmodel\n"]
 PROMPT_GENERATORS = [
@@ -21,91 +24,18 @@ PROMPT_GENERATORS = [
 
 ]
 
-class SimulatorDataset(Dataset):
-    def __init__(self, movies: pd.DataFrame, tokenizer: AutoTokenizer, prompt_generators: List[Callable]) -> None:
-        self.movies = movies
-        self.tokenizer = tokenizer
-        self.prompt_generators = prompt_generators
-
-    def __len__(self):
-        return len(self.movies) * len(self.prompt_generators)
-
-    def __getitem__(self, idx: int):
-        prompt_idx, movie_idx = divmod(idx, len(self.movies))
-        movie_id, movie_title = self.movies.iloc[movie_idx][["movie_id", "movie_title"]]
-
-        # Generate the prompt for the movie
-        prompt = self.prompt_generators[prompt_idx](movie_title)
-
-        # Form prompt
-        chat = [{"role": "user", "content": prompt}]
-
-        # Apply the chat template
-        prompt = self.tokenizer.apply_chat_template(chat, tokenize=False, add_generation_prompt=True)
-
-        return movie_id, movie_title, prompt
-
-def build_language_model(model_name: str = "google/gemma-7b-it") -> tuple[AutoModelForCausalLM, AutoTokenizer]:
-    config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_use_double_quant=False,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch.float16,
-    )
-
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name, 
-        low_cpu_mem_usage=True, 
-        quantization_config=config, 
-        attn_implementation="flash_attention_2"
-    )
-
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    tokenizer.pad_token = tokenizer.eos_token if tokenizer.pad_token is None else tokenizer.pad_token
-
-    return model, tokenizer
-
-def simulate(
-    language_model: MistralForCausalLM,
-    language_tokenizer: AutoTokenizer,
-    split_string: str,
-    dataloader: DataLoader,
-    max_length: int = 2048,
-) -> pd.DataFrame:
-    data = pd.DataFrame(columns=["movie_id", "movie_title", "request"])
-
-    with torch.no_grad():
-        for movie_ids, movie_titles, prompts in tqdm(dataloader, desc="Simulating", unit="batch"):
-            # Tokenize (llm)
-            input_tokens = language_tokenizer(prompts, add_special_tokens=False, padding=True, return_tensors="pt").to(language_model.device)
-
-            # Generate request
-            request_tokens = language_model.generate(**input_tokens, max_new_tokens=max_length, do_sample=True, pad_token_id=language_tokenizer.eos_token_id)
-
-            # Decode request
-            batch_requests = [language_tokenizer.decode(output, skip_special_tokens=True, clean_up_tokenization_spaces=True).split(split_string)[-1] for output in request_tokens]
-
-            batch_requests = pd.DataFrame({
-                "movie_id": movie_ids,
-                "movie_title": movie_titles,
-                "request": batch_requests,
-            })
-
-            data = pd.concat([data, batch_requests], ignore_index=True)
-
-    return data
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--dataset_path', type=str, default="data/ml-20m/movies.csv", help='Path to the dataset')
     parser.add_argument('--output_path', type=str, default="data/ml-20m/requests.csv", help='Path to save the requests')
+    parser.add_argument('--batch_size', type=int, default=32, help='Batch size for the dataloader')
 
     args = parser.parse_args()
 
     data_path = args.dataset_path
     output_path = args.output_path
+    batch_size = args.batch_size
 
     # Read in the data
     movies = pd.read_csv(data_path, header=0, names=["movie_id", "movie_title", "genres"])
@@ -124,10 +54,10 @@ if __name__ == "__main__":
         dataset = SimulatorDataset(movies, language_tokenizer, PROMPT_GENERATORS)
 
         # Create the dataloader
-        dataloader = DataLoader(dataset, batch_size=32, shuffle=False, num_workers=2)
+        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=2)
 
         # Simulate the requests
-        model_data = simulate(language_model, language_tokenizer, split_string, dataloader)
+        model_data = simulate(language_model, language_tokenizer, split_string, dataloader, output_col="request")
 
         data = pd.concat([data, model_data], ignore_index=True)
 
@@ -136,5 +66,11 @@ if __name__ == "__main__":
 
         gc.collect()
         torch.cuda.empty_cache()
+
+    data = data.groupby("movie_id").agg({
+    "movie_title": "first",
+    "request": list,
+    }).reset_index()
+    data.set_index("movie_id", inplace=True, drop=False)
 
     data.to_csv(output_path, index=False)
