@@ -130,7 +130,7 @@ class EncoderCriterion(Criterion):
 
         return cov_loss
 
-class JointCriterion(nn.Module):
+class JointCriterion(Criterion):
     """
     A joint criterion that combines the recommender and encoder criteria, used during collaborative training.
     """

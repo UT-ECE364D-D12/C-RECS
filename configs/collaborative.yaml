@@ -1,6 +1,6 @@
 name: "ml-20m"
 random_seed: 42
-batch_size: 64
+batch_size: 32
 
 train:
   max_epochs: 2
@@ -10,7 +10,6 @@ criterion:
   triplet_margin: 1.0
   focal_gamma: 0.0
   vicreg_gamma: 1.0
-  max_rank: 50
   loss_weights:
     mse: 10.0
     id: 0.1

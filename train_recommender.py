@@ -7,9 +7,9 @@ from torch.utils.data import DataLoader
 
 import wandb
 from model.recommender import DeepFM
+from proccessor.recommender import train
 from utils.data import RatingsDataset, get_feature_sizes
 from utils.loss import RecommenderCriterion
-from utils.recommender import train
 
 args = yaml.safe_load(open("configs/recommender.yaml", "r"))
 
@@ -25,7 +25,7 @@ train_dataloader, test_dataloader = DataLoader(train_dataset, batch_size=args["b
 
 model = DeepFM(feature_dims=get_feature_sizes(ratings), **args["recommender"]).to(device)
 
-optimizer = optim.AdamW(model.parameters(), *args["optimizer"])
+optimizer = optim.AdamW(model.parameters(), **args["optimizer"])
 
 criterion = RecommenderCriterion()
 
