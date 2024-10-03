@@ -96,8 +96,6 @@ class ContentDataset(Dataset):
 
         negative_movie_id, negative_description = self.descriptions.iloc[negative_movie_idx][["movie_id", "description"]]
 
-        # negative_request = random.choice(negative_requests)
-
         anchor_id = self.item_id_to_unique_id[movie_id]
         negative_id = self.item_id_to_unique_id[negative_movie_id]
 

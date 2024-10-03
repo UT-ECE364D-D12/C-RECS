@@ -31,18 +31,24 @@ requests.set_index("movie_id", inplace=True, drop=False)
 descriptions = pd.read_csv("data/ml-20m/descriptions.csv")
 descriptions.set_index("movie_id", inplace=True, drop=False)
 
+# Split requests
 train_requests, test_requests = train_test_split_requests(requests, test_size=1)
+
+# Create datasets & dataloaders
 train_dataset = ContentDataset(descriptions, train_requests)
+train_dataloader = DataLoader(train_dataset, batch_size=args["batch_size"], shuffle=True, num_workers=4)
+
 subset_indices = random.sample(range(len(train_dataset)), k=len(test_requests))
 train_subset = Subset(train_dataset, subset_indices)
-test_dataset = ContentDataset(descriptions, test_requests)
-descriptions_dataset = DescriptionsDataset(descriptions)
-
-train_dataloader = DataLoader(train_dataset, batch_size=args["batch_size"], shuffle=True, num_workers=4)
 train_subset_dataloader = DataLoader(train_subset, batch_size=args["batch_size"], shuffle=False, num_workers=4)
+
+test_dataset = ContentDataset(descriptions, test_requests)
 test_dataloader = DataLoader(test_dataset, batch_size=args["batch_size"], shuffle=False, num_workers=4)
+
+descriptions_dataset = DescriptionsDataset(descriptions)
 descriptions_dataloader = DataLoader(descriptions_dataset, batch_size=args["batch_size"], shuffle=False, num_workers=4)
 
+# Create the model, optimizer, & criterion
 encoder = Encoder(**args["encoder"]).to(device)
 
 expander = build_expander(embed_dim=encoder.embed_dim, width=2).to(device)
