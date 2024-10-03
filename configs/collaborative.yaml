@@ -1,10 +1,17 @@
-name: "ml-20m"
+name: "ml-20m Negative Embeddings"
 random_seed: 42
 batch_size: 96
 
-train:
-  max_epochs: 5
-  accumulation_steps: 1
+encoder:
+  model_name: "bert-base-cased"
+  hidden_dropout_prob: 0.0
+  weights: NULL
+
+recommender:
+  embed_dim: 768
+  mlp_dims: [768, 768]
+  dropout: 0.8
+  weights: NULL
 
 criterion:
   triplet_margin: 1.0
@@ -32,13 +39,6 @@ optimizer:
     lr: 0.0001
     weight_decay: 0.01
 
-encoder:
-  model_name: "bert-base-uncased"
-  hidden_dropout_prob: 0.0
-  weights: NULL
-
-recommender:
-  embed_dim: 768
-  mlp_dims: [768, 768]
-  dropout: 0.8
-  weights: NULL
+train:
+  max_epochs: 5
+  accumulation_steps: 1
