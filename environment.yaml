@@ -1,4 +1,4 @@
-name: cers
+name: crecs
 channels:
   - conda-forge
   - pytorch
@@ -13,6 +13,7 @@ dependencies:
   - peft
   - numpy
   - pandas
+  - cinemagoer
   - scikit-learn
   - transformers
   - sentencepiece

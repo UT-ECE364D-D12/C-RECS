@@ -1,32 +1,35 @@
 import pandas as pd
 import torch
+import yaml
 from sklearn.model_selection import train_test_split
 from torch import optim
 from torch.utils.data import DataLoader
 
 import wandb
 from model.recommender import DeepFM
+from proccessor.recommender import train
 from utils.data import RatingsDataset, get_feature_sizes
 from utils.loss import RecommenderCriterion
-from utils.processor import train
+
+args = yaml.safe_load(open("configs/recommender.yaml", "r"))
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-ratings = pd.read_csv("data/ml-100k/u.data", sep="\t", header=None, names=["user_id", "movie_id", "rating", "timestamp"])
+ratings = pd.read_csv("data/ml-20m/ratings.csv", header=0, names=["user_id", "movie_id", "rating", "timestamp"])
 
 train_ratings, test_ratings = train_test_split(ratings, train_size=0.8)
 
 train_dataset, test_dataset = RatingsDataset(train_ratings), RatingsDataset(test_ratings)
 
-train_dataloader, test_dataloader = DataLoader(train_dataset, batch_size=1024, shuffle=True), DataLoader(test_dataset, batch_size=1024)
+train_dataloader, test_dataloader = DataLoader(train_dataset, batch_size=args["batch_size"], shuffle=True), DataLoader(test_dataset, batch_size=args["batch_size"])
 
-model = DeepFM(feature_dims=get_feature_sizes(ratings), embed_dim=768, mlp_dims=(768, 768), dropout=0.8).to(device)
+model = DeepFM(feature_dims=get_feature_sizes(ratings), **args["recommender"]).to(device)
 
-optimizer = optim.AdamW(model.parameters(), lr=0.001)
+optimizer = optim.AdamW(model.parameters(), **args["optimizer"])
 
 criterion = RecommenderCriterion()
 
-wandb.init(project="MovieLens", name="DeepFM Embed Dim=768", tags=("Recommender",), config={"model": "DeepFM", "optimizer": "AdamW", "lr": 0.001, "Dropout": 0.8, "loss": "MSE"})
+wandb.init(project="MovieLens", name=args["name"], tags=("Recommender",), config=args)
 
 train(
     model=model,
@@ -34,10 +37,10 @@ train(
     criterion=criterion, 
     train_dataloader=train_dataloader, 
     test_dataloader=test_dataloader,
-    max_epochs=10, 
-    device=device
+    device=device,
+    **args["train"],
 )
 
 wandb.finish()
 
-torch.save(model.state_dict(), "weights/recommender/pretrained-deepfm.pt")
+torch.save(model.state_dict(), "weights/recommender/deepfm.pt")
