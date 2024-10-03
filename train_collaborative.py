@@ -8,10 +8,10 @@ from torch.utils.data import DataLoader
 import wandb
 from model.encoder import Encoder, build_classifier, build_expander
 from model.recommender import DeepFM
+from utils.collaborative import train
 from utils.data import CollaborativeDataset, get_feature_sizes, train_test_split_requests
 from utils.loss import JointCriterion
 from utils.misc import set_random_seed
-from utils.processor import train_collaborative
 
 args = yaml.safe_load(open("configs/collaborative.yaml", "r"))
 
@@ -59,7 +59,7 @@ criterion = JointCriterion(loss_weights=args["loss_weights"], expander=expander,
 
 wandb.init(project="MovieLens", name="ml-20m", tags=("Encoder", "Collaborative"), config=args)
 
-train_collaborative(
+train(
     encoder=encoder,
     recommender=recommender,
     optimizer=optimizer,
@@ -72,5 +72,5 @@ train_collaborative(
 
 wandb.finish()
 
-torch.save(recommender.state_dict(), "weights/recommender/deepfm.pt")
-torch.save(encoder.state_dict(), "weights/encoder/encoder.pt")
+torch.save(recommender.state_dict(), "weights/collaborative/deepfm.pt")
+torch.save(encoder.state_dict(), "weights/collaborative/encoder.pt")

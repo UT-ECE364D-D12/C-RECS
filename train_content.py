@@ -1,12 +1,14 @@
+import random
+
 import pandas as pd
 import torch
 import yaml
 from torch import optim
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 
 import wandb
 from model.encoder import Encoder, build_classifier, build_expander
-from utils.content import train_content
+from proccessor.content import train
 from utils.data import ContentDataset, DescriptionsDataset, train_test_split_requests
 from utils.loss import EncoderCriterion
 from utils.misc import set_random_seed
@@ -29,13 +31,15 @@ requests.set_index("movie_id", inplace=True, drop=False)
 descriptions = pd.read_csv("data/ml-20m/descriptions.csv")
 descriptions.set_index("movie_id", inplace=True, drop=False)
 
-train_requests, test_requests = train_test_split_requests(requests, train_size=0.8)
-
+train_requests, test_requests = train_test_split_requests(requests, test_size=1)
 train_dataset = ContentDataset(descriptions, train_requests)
+subset_indices = random.sample(range(len(train_dataset)), k=len(test_requests))
+train_subset = Subset(train_dataset, subset_indices)
 test_dataset = ContentDataset(descriptions, test_requests)
 descriptions_dataset = DescriptionsDataset(descriptions)
 
 train_dataloader = DataLoader(train_dataset, batch_size=args["batch_size"], shuffle=True, num_workers=4)
+train_subset_dataloader = DataLoader(train_subset, batch_size=args["batch_size"], shuffle=False, num_workers=4)
 test_dataloader = DataLoader(test_dataset, batch_size=args["batch_size"], shuffle=False, num_workers=4)
 descriptions_dataloader = DataLoader(descriptions_dataset, batch_size=args["batch_size"], shuffle=False, num_workers=4)
 
@@ -55,12 +59,13 @@ criterion = EncoderCriterion(expander, **args["criterion"])
 
 wandb.init(project="MovieLens", name=args["name"], tags=("Encoder", "Content",), config=args)
 
-train_content(
+train(
     encoder=encoder,
     classifier=classifier,
     optimizer=optimizer,
     criterion=criterion,
     train_dataloader=train_dataloader,
+    train_subset_dataloader=train_subset_dataloader,
     test_dataloader=test_dataloader,
     descriptions_dataloader=descriptions_dataloader,
     device=device,
@@ -69,4 +74,4 @@ train_content(
 
 wandb.finish()
 
-torch.save(encoder.state_dict(), "weights/encoder/encoder.pt")
+torch.save(encoder.state_dict(), "weights/content/encoder.pt")

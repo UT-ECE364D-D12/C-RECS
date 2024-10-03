@@ -1,7 +1,7 @@
 from typing import Dict, Tuple
 
 import torch
-from torch import optim
+from torch import Tensor, optim
 from torch.nn.utils.clip_grad import clip_grad_norm_
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -12,7 +12,7 @@ from utils.loss import EncoderCriterion
 from utils.metric import get_id_metrics, get_reid_metrics
 
 
-def train_content_one_epoch(
+def train_one_epoch(
     encoder: Encoder,
     classifier: MultiLayerPerceptron,
     optimizer: optim.Optimizer,
@@ -27,13 +27,13 @@ def train_content_one_epoch(
     encoder.train()
 
     for i, (anchor, positive, negative) in tqdm(enumerate(dataloader), desc=f"Training (Epoch {epoch})", total=len(dataloader)):
-        anchor_requests, anchor_ids = anchor 
-        positive_descriptions, positive_ids = positive
-        negative_requests, negative_ids = negative 
+        anchor_text, anchor_ids = anchor 
+        positive_text, positive_ids = positive
+        negative_text, negative_ids = negative 
 
-        anchor_embeddings = encoder(anchor_requests)
-        positive_embeddings = encoder(positive_descriptions)
-        negative_embeddings = encoder(negative_requests)
+        anchor_embeddings = encoder(anchor_text)
+        positive_embeddings = encoder(positive_text)
+        negative_embeddings = encoder(negative_text)
 
         anchor_logits = classifier(anchor_embeddings)
         positive_logits = classifier(positive_embeddings)
@@ -54,33 +54,53 @@ def train_content_one_epoch(
             optimizer.step()
             optimizer.zero_grad()
 
+def get_item_embeddings(
+        encoder: Encoder,
+        descriptions_dataloader: DataLoader,
+        epoch: int,
+        device: str = "cpu",
+) -> Tuple[Tensor, Tensor]:
+    item_embeddings = []
+    item_ids = []
 
-def evaluate_content_one_epoch(
+    with torch.no_grad():
+        for movie_ids, descriptions in tqdm(descriptions_dataloader, desc=f"Description Embeddings (Epoch {epoch})"):
+            batch_embeddings = encoder(descriptions)
+
+            item_embeddings.append(batch_embeddings.cpu())
+            item_ids.append(movie_ids.cpu())
+
+    item_embeddings = torch.cat(item_embeddings)
+    item_ids = torch.cat(item_ids)
+
+    return item_embeddings, item_ids
+
+def evaluate(
     encoder: Encoder,
     classifier: MultiLayerPerceptron,
     criterion: EncoderCriterion,
     dataloader: DataLoader,
-    descriptions_dataloader: DataLoader,
+    items: Tuple[Tensor, Tensor],
     epoch: int,
     device: str = "cpu",
 ) -> Tuple[Dict[str, float], Dict[str, float]]:
-    losses = {}
-
     encoder.eval()
+
+    losses = {}
 
     request_embeddings = []
     request_logits = []
     request_ids = []
 
     with torch.no_grad():
-        for anchor, positive, negative in tqdm(dataloader, desc=f"Validation (Epoch {epoch})"):
-            anchor_requests, anchor_ids = anchor 
-            positive_descriptions, positive_ids = positive
-            negative_requests, negative_ids = negative 
+        for anchor, positive, negative in tqdm(dataloader, desc=f"Evaluation (Epoch {epoch})"):
+            anchor_text, anchor_ids = anchor 
+            positive_text, positive_ids = positive
+            negative_text, negative_ids = negative 
 
-            anchor_embeddings = encoder(anchor_requests)
-            positive_embeddings = encoder(positive_descriptions)
-            negative_embeddings = encoder(negative_requests)
+            anchor_embeddings = encoder(anchor_text)
+            positive_embeddings = encoder(positive_text)
+            negative_embeddings = encoder(negative_text)
 
             anchor_logits = classifier(anchor_embeddings)
             positive_logits = classifier(positive_embeddings)
@@ -100,30 +120,18 @@ def evaluate_content_one_epoch(
     request_logits = torch.cat(request_logits)
     request_ids = torch.cat(request_ids)
 
-    description_embeddings = []
-    description_item_ids = []
-
-    with torch.no_grad():
-        for movie_ids, descriptions in tqdm(descriptions_dataloader):
-            batch_embeddings = encoder(descriptions)
-
-            description_embeddings.append(batch_embeddings.cpu())
-            description_item_ids.append(movie_ids.cpu())
-
-    description_embeddings = torch.cat(description_embeddings)
-    description_item_ids = torch.cat(description_item_ids)
-
-    reid_metrics = get_reid_metrics((request_embeddings, request_ids), (description_embeddings, description_item_ids))
+    reid_metrics = get_reid_metrics((request_embeddings, request_ids), items)
     id_metrics = get_id_metrics(request_logits, request_ids)
 
     return losses, {**id_metrics, **reid_metrics}
 
-def train_content(
+def train(
     encoder: Encoder,
     classifier: MultiLayerPerceptron,
     optimizer: optim.Optimizer,
     criterion: EncoderCriterion,
     train_dataloader: DataLoader,
+    train_subset_dataloader: DataLoader,
     test_dataloader: DataLoader,
     descriptions_dataloader: DataLoader,
     max_epochs: int,
@@ -132,10 +140,12 @@ def train_content(
 ) -> None:
 
     for epoch in range(max_epochs): 
-        train_content_one_epoch(encoder, classifier, optimizer, criterion, train_dataloader, epoch, accumulation_steps, device)
-        
-        _, train_metrics = evaluate_content_one_epoch(encoder, classifier, criterion, train_dataloader, descriptions_dataloader, epoch, device)
+        train_one_epoch(encoder, classifier, optimizer, criterion, train_dataloader, epoch, accumulation_steps, device)
 
-        test_losses, test_metrics = evaluate_content_one_epoch(encoder, classifier, criterion, test_dataloader, descriptions_dataloader, epoch, device)
+        items = get_item_embeddings(encoder, descriptions_dataloader, epoch, device)
+        
+        _, train_metrics = evaluate(encoder, classifier, criterion, train_subset_dataloader, items, epoch, device)
+
+        test_losses, test_metrics = evaluate(encoder, classifier, criterion, test_dataloader, items, epoch, device)
 
         wandb.log({"Train": {"Metric": train_metrics}, "Validation": {"Loss": test_losses, "Metric": test_metrics}}, step=wandb.run.step)

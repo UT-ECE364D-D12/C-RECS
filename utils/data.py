@@ -94,14 +94,14 @@ class ContentDataset(Dataset):
         
         negative_movie_idx = random.choice([i for i in range(self.num_movies) if i != movie_idx])
 
-        negative_movie_id, negative_requests = self.requests.iloc[negative_movie_idx][["movie_id", "requests"]]
+        negative_movie_id, negative_description = self.descriptions.iloc[negative_movie_idx][["movie_id", "description"]]
 
-        negative_request = random.choice(negative_requests)
+        # negative_request = random.choice(negative_requests)
 
         anchor_id = self.item_id_to_unique_id[movie_id]
         negative_id = self.item_id_to_unique_id[negative_movie_id]
 
-        return (anchor_request, anchor_id), (positive_description, anchor_id), (negative_request, negative_id)
+        return (anchor_request, anchor_id), (positive_description, anchor_id), (negative_description, negative_id)
     
 class DescriptionsDataset(Dataset):
     def __init__(self, descriptions: pd.DataFrame) -> None:

@@ -1,10 +1,18 @@
-name: "ml-20m Positive Movies"
+name: "ml-20m Negative Descriptions"
 random_seed: 42
-batch_size: 16
+batch_size: 14
 
-train:
-  max_epochs: 10
-  accumulation_steps: 1
+encoder:
+  model_name: "bert-base-uncased"
+  hidden_dropout_prob: 0.0
+  weights: NULL
+
+classifier:
+  dropout: 0.0
+
+expander:
+  width: 2.0
+  dropout: 0.0
 
 criterion:
   triplet_margin: 1.0 
@@ -28,7 +36,6 @@ optimizer:
     lr: 0.0001
     weight_decay: 0.01
 
-encoder:
-  model_name: "bert-base-uncased"
-  hidden_dropout_prob: 0.0
-  weights: NULL
+train:
+  max_epochs: 10
+  accumulation_steps: 1
