@@ -52,9 +52,9 @@ encoder = Encoder(**args["encoder"]).to(device)
 
 recommender = DeepFM(feature_dims=get_feature_sizes(ratings), **args["recommender"]).to(device)
 
-expander = build_expander(embed_dim=encoder.embed_dim, width=2).to(device)
+expander = build_expander(embed_dim=encoder.embed_dim, **args["expander"]).to(device)
 
-classifier = build_classifier(embed_dim=encoder.embed_dim, num_classes=requests["movie_id"].nunique()).to(device)
+classifier = build_classifier(embed_dim=encoder.embed_dim, num_classes=requests["movie_id"].nunique(), **args["classifier"]).to(device)
 
 optimizer = optim.AdamW([
     {"params": encoder.parameters(), **args["optimizer"]["encoder"]},
@@ -65,7 +65,7 @@ optimizer = optim.AdamW([
 
 criterion = JointCriterion(expander=expander, **args["criterion"])
 
-wandb.init(project="MovieLens", name="ml-20m", tags=("Encoder", "Collaborative"), config=args)
+wandb.init(project="MovieLens", name=args["name"], tags=("Encoder", "Collaborative"), config=args)
 
 train(
     encoder=encoder,
