@@ -100,6 +100,9 @@ class MultiLayerPerceptron(torch.nn.Module):
         :param x: Float tensor of size ``(batch_size, embed_dim)``
         """
         return self.mlp(x)
+    
+    def __call__(self, x: Tensor) -> Tensor:
+        return self.forward(x)
 
 
 class InnerProductNetwork(torch.nn.Module):

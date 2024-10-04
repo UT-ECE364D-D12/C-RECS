@@ -9,7 +9,7 @@ from model.layers import MultiLayerPerceptron
 
 
 class Encoder(nn.Module):
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, model_name: str = "bert-base-uncased", weights: str = None, **kwargs) -> None:
         super().__init__()
 
         loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
@@ -17,17 +17,24 @@ class Encoder(nn.Module):
             if "transformers" in logger.name.lower():
                 logger.setLevel(logging.ERROR)
                 
-        self.tokenizer: BertTokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-        self.model: BertModel = BertModel.from_pretrained("bert-base-uncased", **kwargs)
+        self.tokenizer: BertTokenizer = BertTokenizer.from_pretrained(model_name)
+        self.model: BertModel = BertModel.from_pretrained(model_name, **kwargs)
+        self.embed_dim = self.model.config.hidden_size
+        
+        if weights is not None:
+            self.load_state_dict(torch.load(weights))
     
     def forward(self, requests: List[str]) -> Tensor:
-        encoder_tokens = self.tokenizer(requests, padding=True, return_tensors="pt").to(self.model.device)
+        encoder_tokens = self.tokenizer(requests, padding=True, max_length=512, truncation=True, return_tensors="pt").to(self.model.device)
 
         batch_encoded_requests = self.model(**encoder_tokens)
 
         encoded_requests = batch_encoded_requests.last_hidden_state[:, 0]
 
         return encoded_requests
+    
+    def __call__(self, *args) -> Tensor:
+        return super().__call__(*args)
 
 def build_expander(embed_dim: int, width: float = 2.0, **kwargs) -> MultiLayerPerceptron:
     return MultiLayerPerceptron(input_dim=embed_dim, hidden_dims=[expander_dim := int(embed_dim * width), expander_dim], output_dim=expander_dim, **kwargs)
