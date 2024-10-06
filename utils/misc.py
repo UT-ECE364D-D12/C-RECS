@@ -12,7 +12,6 @@ from torchmetrics.functional import pairwise_cosine_similarity
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 
-
 # Modified from Pytorch to handle per-parameter group learning rates
 class CosineAnnealingLR(LRScheduler):
     def __init__(self, optimizer: Optimizer, T_max: int, eta_min: List[float] = [0], last_epoch: int = -1, verbose="deprecated"): 
