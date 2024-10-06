@@ -1,5 +1,5 @@
 import random
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, List, Tuple
 
 import pandas as pd
 import torch
@@ -14,30 +14,18 @@ class RatingsDataset(Dataset):
     def __init__(self, ratings: pd.DataFrame) -> None:
         self.ratings = ratings
 
-        self.unique_user_ids = self.ratings["user_id"].unique()
-        self.user_id_to_unique_id = {user_id: i for i, user_id in enumerate(self.unique_user_ids)}
-
-        self.unique_item_ids = self.ratings["movie_id"].unique()
-        self.item_id_to_unique_id = {movie_id: i for i, movie_id in enumerate(self.unique_item_ids)}
-
     def __len__(self) -> int:
         return len(self.ratings)
     
     def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor]:
         user_id, movie_id, rating = self.ratings.iloc[idx][["user_id", "movie_id", "rating"]]
 
-        user_id = self.user_id_to_unique_id[user_id]
-        movie_id = self.item_id_to_unique_id[movie_id]
-
         return torch.tensor([user_id, movie_id]), torch.tensor(rating / 5.0)
     
 class CollaborativeDataset(Dataset):
-    def __init__(self, ratings_data: pd.DataFrame, request_data: pd.DataFrame, user_id_to_unique_id: Dict[int, int], movie_id_to_unique_id: Dict[int, int]) -> None:
+    def __init__(self, ratings_data: pd.DataFrame, request_data: pd.DataFrame) -> None:
         self.ratings_data = ratings_data
         self.request_data = request_data
-
-        self.user_id_to_unique_id = user_id_to_unique_id
-        self.movie_id_to_unique_id = movie_id_to_unique_id
 
         self.unique_movie_ids = self.ratings_data["movie_id"].unique()
         self.num_movies = len(self.request_data)
@@ -56,11 +44,7 @@ class CollaborativeDataset(Dataset):
         
         negative_movie_id = random.choice([i for i in self.unique_movie_ids if i != movie_id])
 
-        user_id = self.user_id_to_unique_id[user_id]
-        anchor_id = self.movie_id_to_unique_id[movie_id]
-        negative_id = self.movie_id_to_unique_id[negative_movie_id]
-
-        return torch.tensor([user_id, anchor_id]), torch.tensor(rating / 5.0), (anchor_request, anchor_id), (negative_id)
+        return torch.tensor([user_id, movie_id]), torch.tensor(rating / 5.0), (anchor_request, movie_id), (negative_movie_id)
         
 class ContentDataset(Dataset):
     def __init__(self, descriptions: pd.DataFrame, requests: pd.DataFrame) -> None:
@@ -69,9 +53,6 @@ class ContentDataset(Dataset):
 
         self.num_movies = len(self.requests)
         self.num_requests_per_movie = len(self.requests.iloc[0]["requests"])        
-
-        unique_item_ids = self.descriptions["movie_id"].unique()
-        self.item_id_to_unique_id = {movie_id: i for i, movie_id in enumerate(unique_item_ids)}
 
     def __len__(self) -> int:
         return self.num_movies * self.num_requests_per_movie
@@ -92,10 +73,7 @@ class ContentDataset(Dataset):
 
         negative_movie_id, negative_description = self.descriptions.iloc[negative_movie_idx][["movie_id", "description"]]
 
-        anchor_id = self.item_id_to_unique_id[movie_id]
-        negative_id = self.item_id_to_unique_id[negative_movie_id]
-
-        return (anchor_request, anchor_id), (positive_description, anchor_id), (negative_description, negative_id)
+        return (anchor_request, movie_id), (positive_description, movie_id), (negative_description, negative_movie_id)
     
 class DescriptionsDataset(Dataset):
     def __init__(self, descriptions: pd.DataFrame) -> None:
@@ -103,16 +81,13 @@ class DescriptionsDataset(Dataset):
 
         self.num_descriptions = len(self.descriptions)
 
-        unique_item_ids = self.descriptions["movie_id"].unique()
-        self.item_id_to_unique_id = {movie_id: i for i, movie_id in enumerate(unique_item_ids)}
-
     def __len__(self) -> int:
         return self.num_descriptions
 
     def __getitem__(self, idx: int) -> Tuple[int, str]:
         movie_id, description = self.descriptions.iloc[idx][["movie_id", "description"]]
 
-        return self.item_id_to_unique_id[movie_id], description
+        return movie_id, description
     
 class SimulatorDataset(Dataset):
     def __init__(self, movies: pd.DataFrame, tokenizer: AutoTokenizer, prompt_generators: List[Callable]) -> None:

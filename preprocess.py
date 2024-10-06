@@ -1,3 +1,5 @@
+# Preprocess the MovieLens 20M dataset
+
 import os
 
 import numpy as np
@@ -37,11 +39,17 @@ ratings = ratings[ratings["user_id"].isin(users)]
 
 movies = movies[movies["movie_id"].isin(ratings["movie_id"])]
 
+# Convert user_id and movie_id to unique_id
+user_id_to_unique_id = {user_id: i for i, user_id in enumerate(ratings["user_id"].unique())}
+item_id_to_unique_id = {movie_id: i for i, movie_id in enumerate(movies["movie_id"].unique())}
+
 if os.path.exists("data/ml-20m/requests.csv"):
     requests = pd.read_csv("data/ml-20m/requests.csv")
-
-    requests = requests[requests["movie_id"].isin(movies["movie_id"])]
     
+    requests = requests[requests["movie_id"].isin(movies["movie_id"])]
+
+    requests["movie_id"] = requests["movie_id"].map(item_id_to_unique_id)
+
     requests.to_csv("data/ml-20m/requests.csv", index=False)
 
 if os.path.exists("data/ml-20m/descriptions.csv"):
@@ -49,7 +57,14 @@ if os.path.exists("data/ml-20m/descriptions.csv"):
 
     descriptions = descriptions[descriptions["movie_id"].isin(movies["movie_id"])]
 
+    descriptions["movie_id"] = descriptions["movie_id"].map(item_id_to_unique_id)
+
     descriptions.to_csv("data/ml-20m/descriptions.csv", index=False)
+
+movies["movie_id"] = movies["movie_id"].map(item_id_to_unique_id)
+
+ratings["user_id"] = ratings["user_id"].map(user_id_to_unique_id)
+ratings["movie_id"] = ratings["movie_id"].map(item_id_to_unique_id)
 
 ratings.to_csv("data/ml-20m/ratings.csv", index=False)
 
