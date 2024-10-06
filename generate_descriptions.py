@@ -4,18 +4,10 @@ os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
 import argparse
 import gc
-from typing import Callable, List
 
 import pandas as pd
 import torch
-from torch.utils.data import DataLoader, Dataset
-from tqdm import tqdm
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    BitsAndBytesConfig,
-    MistralForCausalLM,
-)
+from torch.utils.data import DataLoader
 
 from utils.data import SimulatorDataset, simulate
 from utils.misc import build_language_model
