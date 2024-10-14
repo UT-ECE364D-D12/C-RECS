@@ -1,22 +1,19 @@
-# CERS
-Chatbot Enhanced Recommender System
+# C-RECS
 
+Conversational Recommender System
 ## Setup
 
 1. Create an environment:
 ```bash
 mamba env create -f environment.yaml
 ```
-Or
-```bash
-mamba env create -f cpu_environment.yaml
-```
+
 2. Activate the environment:
 ```bash
-conda activate cers
+conda activate crecs 
 ```
 
-3. (GPU Only) Compile bitsandbytes from source:
+3. Compile bitsandbytes from source:
 ```bash
 git clone https://github.com/TimDettmers/bitsandbytes.git && cd bitsandbytes/
 pip install -r requirements-dev.txt
@@ -25,38 +22,50 @@ make
 pip install .
 ```
 
-4. Download MovieLens and place it in `data/ml-20m/`:
+4. Download MovieLens 20M:
 ```bash
-bash fetch_data.bsh
+bash download_data.sh
 ```
 
-5. Preprocess the data
+5. Preprocess the data:
 ```bash
 python preprocess.py
 ```
 
 ## Training
 
-To jointly train the encoder and recommender:
-
 1. Ensure you have access to all of the LLM's used in `simulate_requests.py`, and that you are logged into huggingface:
 ```bash
 huggingface-cli login
 ```
 
-2. Log in to W&B:
+2. Log in to W&B to view run metrics:
 ```bash
 wandb login
 ```
 
-3. Simulate movie requests:
+To jointly train the encoder and recommender using collaborative filtering:
+
+1. Simulate item requests:
 ```bash
 python simulate_requests.py
 ```
 
-4. Train the encoder & recommender:
+2. Train the encoder & recommender:
 ```bash
-python train_encoder.py
+python train_collaborative.py
+```
+
+To train the encoder using content filtering:
+
+1. Generate item descriptions:
+```bash
+python generate_descriptions.py
+```
+
+2. Train the encoder:
+```bash
+python train_content.py
 ```
 
 # Dataset
