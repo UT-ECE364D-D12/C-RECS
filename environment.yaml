@@ -18,6 +18,7 @@ dependencies:
   - transformers
   - sentencepiece
   - protobuf
+  - optuna
   - wandb
   - datasets
   - ipykernel
