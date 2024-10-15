@@ -1,5 +1,6 @@
 from typing import Dict, Tuple
 
+import optuna
 import torch
 from torch import optim
 from torch.nn.utils.clip_grad import clip_grad_norm_
@@ -23,13 +24,15 @@ def train_one_epoch(
     dataloader: DataLoader,
     epoch: int,
     accumulation_steps: int = 1,
-    device: str = "cpu"
+    device: str = "cpu",
+    verbose: bool = True,
 ) -> None:
     losses = {}
 
     encoder.train()
 
-    for i, (rec_features, rec_targets, anchor, negative) in tqdm(enumerate(dataloader), desc=f"Training (Epoch {epoch})", total=len(dataloader)):
+    data = tqdm(enumerate(dataloader), desc=f"Training (Epoch {epoch})") if verbose else enumerate(dataloader)
+    for i, (rec_features, rec_targets, anchor, negative) in data:
         rec_features, rec_targets = rec_features.to(device), rec_targets.to(device)
 
         rec_predictions = recommender(rec_features)
@@ -47,7 +50,8 @@ def train_one_epoch(
 
         batch_losses = criterion(rec_predictions, rec_targets, (anchor_embeddings, anchor_logits, anchor_ids), (positive_embeddings, positive_logits, anchor_ids), (negative_embeddings, negative_logits, negative_ids))
 
-        wandb.log({"Train": {"Loss": batch_losses}}, step=wandb.run.step + len(anchor_embeddings))
+        if verbose:
+            wandb.log({"Train": {"Loss": batch_losses}}, step=wandb.run.step + len(anchor_embeddings))
 
         losses = {k: losses.get(k, 0) + v.item() for k, v in batch_losses.items()}
         
@@ -68,6 +72,7 @@ def evaluate(
     dataloader: DataLoader,
     epoch: int,
     device: str = "cpu",
+    verbose: bool = True
 ) -> Tuple[Dict[str, float], Dict[str, float]]:
     encoder.eval()
 
@@ -77,8 +82,9 @@ def evaluate(
     request_logits = []
     request_ids = []
 
+    data = tqdm(dataloader, desc=f"Validation (Epoch {epoch})") if verbose else dataloader
     with torch.no_grad():
-        for rec_features, rec_targets, anchor, negative in tqdm(dataloader, desc=f"Validation (Epoch {epoch})"):
+        for rec_features, rec_targets, anchor, negative in data:
             rec_features, rec_targets = rec_features.to(device), rec_targets.to(device)
 
             rec_predictions = recommender(rec_features)
@@ -128,13 +134,36 @@ def train(
     test_dataloader: DataLoader,
     max_epochs: int,
     accumulation_steps: int = 1,
-    device: str = "cpu",
+    **kwargs
 ) -> None:
     for epoch in range(max_epochs):
-        train_one_epoch(encoder, classifier, recommender, optimizer, criterion, train_dataloader, epoch, accumulation_steps, device)
+        train_one_epoch(encoder, classifier, recommender, optimizer, criterion, train_dataloader, epoch, accumulation_steps, **kwargs)
 
-        _, train_metrics = evaluate(encoder, classifier, recommender, criterion, train_subset_dataloader, epoch, device)
+        _, train_metrics = evaluate(encoder, classifier, recommender, criterion, train_subset_dataloader, epoch, **kwargs)
 
-        test_losses, test_metrics = evaluate(encoder, classifier, recommender, criterion, test_dataloader, epoch, device)
+        test_losses, test_metrics = evaluate(encoder, classifier, recommender, criterion, test_dataloader, epoch, **kwargs)
 
         wandb.log({"Train": {"Metric": train_metrics}, "Validation": {"Loss": test_losses, "Metric": test_metrics}}, step=wandb.run.step)
+        
+def run_trial(
+    encoder: Encoder,
+    classifier: MultiLayerPerceptron,
+    recommender: DeepFM,
+    optimizer: optim.Optimizer,
+    criterion: JointCriterion,
+    train_dataloader: DataLoader,
+    test_dataloader: DataLoader,
+    trial: optuna.Trial,
+    max_epochs: int,
+    accumulation_steps: int = 1,
+    **kwargs
+) -> None:
+    for epoch in range(max_epochs):
+        train_one_epoch(encoder, classifier, recommender, optimizer, criterion, train_dataloader, epoch, accumulation_steps, **kwargs)
+
+        test_losses, test_metrics = evaluate(encoder, classifier, recommender, criterion, test_dataloader, epoch, **kwargs)
+
+        trial.report(test_metrics["reid_map"], epoch)
+
+        if trial.should_prune():
+            raise optuna.exceptions.TrialPruned()

@@ -11,7 +11,6 @@ from model.layers import MultiLayerPerceptron
 class Encoder(nn.Module):
     def __init__(self, model_name: str = "bert-base-uncased", weights: str = None, **kwargs) -> None:
         super().__init__()
-
         loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
         for logger in loggers:
             if "transformers" in logger.name.lower():
