@@ -4,15 +4,10 @@ os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
 import argparse
 import gc
-from typing import Callable, List
 
 import pandas as pd
 import torch
-from torch.utils.data import DataLoader, Dataset
-from tqdm import tqdm
-from transformers import AutoTokenizer, MistralForCausalLM
-
-from utils.misc import build_language_model
+from torch.utils.data import DataLoader
 
 from utils.data import SimulatorDataset, simulate
 from utils.misc import build_language_model
@@ -67,11 +62,5 @@ if __name__ == "__main__":
 
         gc.collect()
         torch.cuda.empty_cache()
-
-    data = data.groupby("movie_id").agg({
-    "movie_title": "first",
-    "request": list,
-    }).reset_index()
-    data.set_index("movie_id", inplace=True, drop=False)
 
     data.to_csv(output_path, index=False)

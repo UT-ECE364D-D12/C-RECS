@@ -32,16 +32,13 @@ requests.set_index("movie_id", inplace=True, drop=False)
 
 ratings = pd.read_csv("data/ml-20m/ratings.csv", header=0, names=["user_id", "movie_id", "rating", "timestamp"]).astype({"user_id": int, "movie_id": int, "rating": float, "timestamp": int})
 
-user_id_to_unique_id = {user_id: i for i, user_id in enumerate(ratings["user_id"].unique())}
-item_id_to_unique_id = {movie_id: i for i, movie_id in enumerate(requests["movie_id"].unique())}
-
 train_requests, test_requests = train_test_split_requests(requests, train_size=0.8)
 train_ratings, test_ratings = train_test_split(ratings, train_size=0.8)
 
-train_dataset = CollaborativeDataset(train_ratings, train_requests, user_id_to_unique_id, item_id_to_unique_id)
+train_dataset = CollaborativeDataset(train_ratings, train_requests)
 train_dataloader= DataLoader(train_dataset, batch_size=args["batch_size"], shuffle=True, num_workers=4, drop_last=True)
 
-test_dataset = CollaborativeDataset(test_ratings, test_requests, user_id_to_unique_id, item_id_to_unique_id)
+test_dataset = CollaborativeDataset(test_ratings, test_requests)
 test_dataloader = DataLoader(test_dataset, batch_size=args["batch_size"], num_workers=4, drop_last=True)
 
 subset_indices = random.sample(range(len(train_dataset)), k=len(test_dataset))
@@ -52,9 +49,9 @@ encoder = Encoder(**args["encoder"]).to(device)
 
 recommender = DeepFM(feature_dims=get_feature_sizes(ratings), **args["recommender"]).to(device)
 
-expander = build_expander(embed_dim=encoder.embed_dim, width=2).to(device)
+expander = build_expander(embed_dim=encoder.embed_dim, **args["expander"]).to(device)
 
-classifier = build_classifier(embed_dim=encoder.embed_dim, num_classes=requests["movie_id"].nunique()).to(device)
+classifier = build_classifier(embed_dim=encoder.embed_dim, num_classes=requests["movie_id"].nunique(), **args["classifier"]).to(device)
 
 optimizer = optim.AdamW([
     {"params": encoder.parameters(), **args["optimizer"]["encoder"]},
@@ -65,7 +62,7 @@ optimizer = optim.AdamW([
 
 criterion = JointCriterion(expander=expander, **args["criterion"])
 
-wandb.init(project="MovieLens", name="ml-20m", tags=("Encoder", "Collaborative"), config=args)
+wandb.init(project="MovieLens", name=args["name"], tags=("Encoder", "Collaborative"), config=args)
 
 train(
     encoder=encoder,
@@ -83,5 +80,9 @@ train(
 wandb.finish()
 
 os.makedirs("weights/collaborative", exist_ok=True)
-torch.save(recommender.state_dict(), "weights/collaborative/deepfm.pt")
 torch.save(encoder.state_dict(), "weights/collaborative/encoder.pt")
+torch.save(recommender.state_dict(), "weights/collaborative/deepfm.pt")
+
+item_embeddings = recommender.embedding.embedding.weight[recommender.embedding.offsets[1]:]
+
+torch.save(item_embeddings, "weights/collaborative/item_embeddings.pt")
