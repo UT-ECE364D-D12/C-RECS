@@ -45,12 +45,6 @@ test_dataset = CollaborativeDataset(test_ratings, test_requests)
 test_dataloader = DataLoader(test_dataset, batch_size=args["batch_size"], num_workers=4, drop_last=True)
 
 def objective(trial: optuna.Trial) -> float:
-    # Learning Rate
-    args["optimizer"]["encoder"]["lr"] = trial.suggest_float("encoder.lr", 1e-7, 1e-3, log=True)
-    args["optimizer"]["classifier"]["lr"] = trial.suggest_float("classifier.lr", 1e-5, 1e-1, log=True)
-    args["optimizer"]["expander"]["lr"] = trial.suggest_float("expander.lr", 1e-5, 1e-1, log=True)
-    args["optimizer"]["recommender"]["lr"] = trial.suggest_float("recommender.lr", 1e-5, 1e-1, log=True)
-
     # Dropout
     args["encoder"]["hidden_dropout_prob"] = trial.suggest_float("encoder.dropout", 0.0, 1.0)
     args["classifier"]["dropout"] = trial.suggest_float("classifier.dropout", 0.0, 1.0)
@@ -67,12 +61,15 @@ def objective(trial: optuna.Trial) -> float:
     args["criterion"]["loss_weights"]["mse"] = trial.suggest_float("weights.mse", 0.0, 10.0)
     args["criterion"]["loss_weights"]["id"] = trial.suggest_float("weights.id", 0.0, 10.0)
     args["criterion"]["loss_weights"]["triplet"] = trial.suggest_float("weights.triplet", 0.0, 10.0)
-    args["criterion"]["loss_weights"]["variance"] = trial.suggest_float("weights.variance", 0.0, 10.0)
-    args["criterion"]["loss_weights"]["invariance"] = trial.suggest_float("weights.invariance", 0.0, 10.0)
-    args["criterion"]["loss_weights"]["covariance"] = trial.suggest_float("weights.covariance", 0.0, 10.0)
+    args["criterion"]["loss_weights"]["variance"] = trial.suggest_float("weights.variance", 0.0, 1.0)
+    args["criterion"]["loss_weights"]["invariance"] = trial.suggest_float("weights.invariance", 0.0, 1.0)
+    args["criterion"]["loss_weights"]["covariance"] = trial.suggest_float("weights.covariance", 0.0, 1.0)
+
 
     # Misc
     args["criterion"]["triplet_margin"] = trial.suggest_float("triplet_margin", 0.0, 2.0)
+    args["criterion"]["focal_gamma"] = trial.suggest_float("focal_gamma", 0.0, 2.0)
+    args["train"]["max_epochs"] = trial.suggest_int("max_epochs", 1, 10)
 
     encoder = Encoder(**args["encoder"]).to(device)
 
@@ -94,23 +91,36 @@ def objective(trial: optuna.Trial) -> float:
     for epoch in tqdm(range(args["train"]["max_epochs"]), desc=f"Trial {trial.number}", unit="epochs"):
         train_one_epoch(encoder, classifier, recommender, optimizer, criterion, train_dataloader, epoch, device=device, verbose=False)
 
-        _, test_metrics = evaluate(encoder, classifier, recommender, criterion, test_dataloader, epoch, device=device, verbose=False)
-
-        trial.report(test_metrics["reid_map"], epoch)
-
-        if trial.should_prune():
-            raise optuna.exceptions.TrialPruned()
+        test_losses, test_metrics = evaluate(encoder, classifier, recommender, criterion, test_dataloader, epoch, device=device, verbose=False)
         
-    return test_metrics["reid_map"]
+    return test_losses["mse"], test_metrics["reid_map"]
 
 if __name__ == "__main__":
-    study = optuna.create_study(direction="maximize")
-    study.optimize(objective, n_trials=100, gc_after_trial=True)
-
+    study = optuna.create_study(directions=["minimize", "maximize"])
+    study.enqueue_trial({
+        "encoder.dropout": args["encoder"]["hidden_dropout_prob"],
+        "classifier.dropout": args["classifier"]["dropout"],
+        "expander.dropout": args["expander"]["dropout"],
+        "recommender.dropout": args["recommender"]["dropout"],
+        "encoder.weight_decay": args["optimizer"]["encoder"]["weight_decay"],
+        "classifier.weight_decay": args["optimizer"]["classifier"]["weight_decay"],
+        "expander.weight_decay": args["optimizer"]["expander"]["weight_decay"],
+        "recommender.weight_decay": args["optimizer"]["recommender"]["weight_decay"],
+        "weights.mse": args["criterion"]["loss_weights"]["mse"],
+        "weights.id": args["criterion"]["loss_weights"]["id"],
+        "weights.triplet": args["criterion"]["loss_weights"]["triplet"],
+        "weights.variance": args["criterion"]["loss_weights"]["variance"],
+        "weights.invariance": args["criterion"]["loss_weights"]["invariance"],
+        "weights.covariance": args["criterion"]["loss_weights"]["covariance"],
+        "triplet_margin": args["criterion"]["triplet_margin"],
+        "focal_gamma": args["criterion"]["focal_gamma"],
+        "max_epochs": args["train"]["max_epochs"]
+    })
+    study.optimize(objective, n_trials=100, gc_after_trial=True, catch=(Exception,))
 
     best_trial = study.best_trial
     
-    print(f"Best Value: ", best_trial.value)
+    print(f"Best Value: {best_trial.value}")
     print("Best Params: ")
     for key, value in best_trial.params.items():
         print(f"{key}: {value}")
