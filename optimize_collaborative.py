@@ -6,10 +6,9 @@ import torch
 import yaml
 from sklearn.model_selection import train_test_split
 from torch import optim
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-import wandb
 from model.encoder import Encoder, build_classifier, build_expander
 from model.recommender import DeepFM
 from proccessor.collaborative import evaluate, train_one_epoch
@@ -39,10 +38,10 @@ train_requests, test_requests = train_test_split_requests(requests, train_size=0
 train_ratings, test_ratings = train_test_split(ratings, train_size=0.8)
 
 train_dataset = CollaborativeDataset(train_ratings, train_requests)
-train_dataloader= DataLoader(train_dataset, batch_size=args["batch_size"], shuffle=True, num_workers=4, drop_last=True)
+train_dataloader= DataLoader(train_dataset, batch_size=args["batch_size"], shuffle=True, num_workers=6, drop_last=True)
 
 test_dataset = CollaborativeDataset(test_ratings, test_requests)
-test_dataloader = DataLoader(test_dataset, batch_size=args["batch_size"], num_workers=4, drop_last=True)
+test_dataloader = DataLoader(test_dataset, batch_size=args["batch_size"], num_workers=6, drop_last=True)
 
 def objective(trial: optuna.Trial) -> float:
     # Dropout
@@ -93,10 +92,10 @@ def objective(trial: optuna.Trial) -> float:
 
         test_losses, test_metrics = evaluate(encoder, classifier, recommender, criterion, test_dataloader, epoch, device=device, verbose=False)
         
-    return test_losses["mse"], test_metrics["reid_map"]
+    return test_losses["mse"], test_metrics["reid_map"], test_metrics["rank-1"], test_metrics["rank-5"], test_metrics["rank-10"]
 
 if __name__ == "__main__":
-    study = optuna.create_study(directions=["minimize", "maximize"])
+    study = optuna.create_study(directions=["minimize", "maximize", "maximize", "maximize", "maximize"])
     study.enqueue_trial({
         "encoder.dropout": args["encoder"]["hidden_dropout_prob"],
         "classifier.dropout": args["classifier"]["dropout"],

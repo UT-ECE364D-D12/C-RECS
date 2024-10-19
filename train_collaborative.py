@@ -36,14 +36,14 @@ train_requests, test_requests = train_test_split_requests(requests, train_size=0
 train_ratings, test_ratings = train_test_split(ratings, train_size=0.8)
 
 train_dataset = CollaborativeDataset(train_ratings, train_requests)
-train_dataloader= DataLoader(train_dataset, batch_size=args["batch_size"], shuffle=True, num_workers=4, drop_last=True)
+train_dataloader= DataLoader(train_dataset, batch_size=args["batch_size"], shuffle=True, num_workers=6, drop_last=True)
 
 test_dataset = CollaborativeDataset(test_ratings, test_requests)
-test_dataloader = DataLoader(test_dataset, batch_size=args["batch_size"], num_workers=4, drop_last=True)
+test_dataloader = DataLoader(test_dataset, batch_size=args["batch_size"], num_workers=6, drop_last=True)
 
 subset_indices = random.sample(range(len(train_dataset)), k=len(test_dataset))
 train_subset = Subset(train_dataset, subset_indices)
-train_subset_dataloader = DataLoader(train_subset, batch_size=args["batch_size"], shuffle=False, num_workers=4, drop_last=True)
+train_subset_dataloader = DataLoader(train_subset, batch_size=args["batch_size"], shuffle=False, num_workers=6, drop_last=True)
 
 encoder = Encoder(**args["encoder"]).to(device)
 

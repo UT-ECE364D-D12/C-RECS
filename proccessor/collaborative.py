@@ -31,7 +31,7 @@ def train_one_epoch(
 
     encoder.train()
 
-    data = tqdm(enumerate(dataloader), desc=f"Training (Epoch {epoch})") if verbose else enumerate(dataloader)
+    data = tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Training (Epoch {epoch})") if verbose else enumerate(dataloader)
     for i, (rec_features, rec_targets, anchor, negative) in data:
         rec_features, rec_targets = rec_features.to(device), rec_targets.to(device)
 

@@ -1,50 +1,50 @@
-name: "ml-20m Weight Decay"
+name: "ml-20m Optimized"
 random_seed: 42
 batch_size: 128
 
 encoder:
   model_name: "bert-base-uncased"
-  hidden_dropout_prob: 0.25
+  hidden_dropout_prob: 0.15
   weights: NULL
 
 classifier:
-  dropout: 0.15
+  dropout: 0.0
 
 expander:
   width: 2.0
-  dropout: 0.0
+  dropout: 0.5
 
 recommender:
   embed_dim: 768
   mlp_dims: [768, 768]
-  dropout: 0.8
+  dropout: 0.15
   weights: NULL
 
 criterion:
-  triplet_margin: 1.0
-  focal_gamma: 0.0
+  triplet_margin: 1.2
+  focal_gamma: 0.75
   vicreg_gamma: 1.0
   loss_weights:
-    mse: 10.0
-    id: 0.1
-    triplet: 10.0
-    variance: 0.8
-    invariance: 0.8
-    covariance: 0.08
+    mse: 5.5
+    id: 3.2
+    triplet: 8.3
+    variance: 0.9
+    invariance: 0.75
+    covariance: 0.45
 
 optimizer:
   encoder:
     lr: 0.000005
-    weight_decay: 0.05
+    weight_decay: 0.1
   classifier:
     lr: 0.0001
-    weight_decay: 0.05
+    weight_decay: 0.03
   expander:
     lr: 0.0001
-    weight_decay: 0.005
+    weight_decay: 0.02
   recommender:
     lr: 0.0001
-    weight_decay: 0.01
+    weight_decay: 0.1
 
 train:
   max_epochs: 5
