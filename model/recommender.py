@@ -21,7 +21,7 @@ class DeepFM(nn.Module):
         self.mlp = MultiLayerPerceptron(input_dim=self.embed_output_dim, hidden_dims=mlp_dims, output_dim=1, dropout=dropout)
 
         if weights is not None:
-            self.load_state_dict(torch.load(weights))
+            self.load_state_dict(torch.load(weights, weights_only=True))
 
     def forward(self, x: Tensor) -> Tensor:
         """

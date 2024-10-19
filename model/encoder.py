@@ -16,12 +16,12 @@ class Encoder(nn.Module):
             if "transformers" in logger.name.lower():
                 logger.setLevel(logging.ERROR)
                 
-        self.tokenizer: BertTokenizer = BertTokenizer.from_pretrained(model_name)
+        self.tokenizer: BertTokenizer = BertTokenizer.from_pretrained(model_name, clean_up_tokenization_spaces=True)
         self.model: BertModel = BertModel.from_pretrained(model_name, **kwargs)
         self.embed_dim = self.model.config.hidden_size
         
         if weights is not None:
-            self.load_state_dict(torch.load(weights))
+            self.load_state_dict(torch.load(weights, weights_only=True))
     
     def forward(self, requests: List[str]) -> Tensor:
         encoder_tokens = self.tokenizer(requests, padding=True, max_length=512, truncation=True, return_tensors="pt").to(self.model.device)
