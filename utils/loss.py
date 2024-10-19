@@ -2,11 +2,10 @@ from typing import Dict, Tuple, Union
 
 import torch
 import torch.nn.functional as F
-from sklearn.metrics import average_precision_score, recall_score
 from torch import Tensor, nn
 
 from model.layers import MultiLayerPerceptron
-from utils.misc import cosine_distance, pairwise_cosine_distance
+from utils.misc import cosine_distance
 
 
 class Criterion(nn.Module):
