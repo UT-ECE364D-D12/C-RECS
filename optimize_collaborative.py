@@ -87,10 +87,13 @@ def objective(trial: optuna.Trial) -> float:
 
     criterion = JointCriterion(expander=expander, **args["criterion"])
 
-    for epoch in tqdm(range(args["train"]["max_epochs"]), desc=f"Trial {trial.number}", unit="epochs"):
-        train_one_epoch(encoder, classifier, recommender, optimizer, criterion, train_dataloader, epoch, device=device, verbose=False)
+    try:
+        for epoch in tqdm(range(args["train"]["max_epochs"]), desc=f"Trial {trial.number}", unit="epochs"):
+            train_one_epoch(encoder, classifier, recommender, optimizer, criterion, train_dataloader, epoch, device=device, verbose=False)
 
-        test_losses, test_metrics = evaluate(encoder, classifier, recommender, criterion, test_dataloader, epoch, device=device, verbose=False)
+            test_losses, test_metrics = evaluate(encoder, classifier, recommender, criterion, test_dataloader, epoch, device=device, verbose=False)
+    except ValueError: # Model training was too unstable
+        return 1.0, 0, 0, 0, 0
         
     return test_losses["mse"], test_metrics["reid_map"], test_metrics["rank-1"], test_metrics["rank-5"], test_metrics["rank-10"]
 
@@ -117,9 +120,7 @@ if __name__ == "__main__":
     })
     study.optimize(objective, n_trials=100, gc_after_trial=True, catch=(Exception,))
 
-    best_trial = study.best_trial
-    
-    print(f"Best Value: {best_trial.value}")
-    print("Best Params: ")
-    for key, value in best_trial.params.items():
-        print(f"{key}: {value}")
+    for trial in study.best_trials:
+        print(f"\nTrial #{trial.number} MSE: {trial.values[0]} mAP: {trial.values[1]} Rank-1: {trial.values[2]} Rank-5: {trial.values[3]} Rank-10: {trial.values[4]}")
+        for key, value in trial.params.items():
+            print(f"{key}: {value}")
