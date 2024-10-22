@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
-from transformers import AutoTokenizer, MistralForCausalLM
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 class RatingsDataset(Dataset):
@@ -113,6 +113,34 @@ class SimulatorDataset(Dataset):
 
         return movie_id, movie_title, prompt
 
+def train_test_split_ratings(ratings: pd.DataFrame, train_size: float = 0.85):
+    """
+    Split ratings into a train and test set. For a user with n ratings the first 
+    floor(n * train_size) ratings are used for training and the rest for testing.
+    """
+    def split_user_ratings(user_ratings: pd.DataFrame):
+        num_ratings = len(user_ratings)
+        num_train_ratings = int(num_ratings * train_size)
+        
+        train_data = user_ratings.iloc[:num_train_ratings]
+        test_data = user_ratings.iloc[num_train_ratings:]
+        
+        return train_data, test_data
+
+    train_ratings = []
+    test_ratings = []
+
+    for _, user_ratings in ratings.groupby("user_id"):
+        train_data, val_data = split_user_ratings(user_ratings)
+
+        train_ratings.append(train_data)
+        test_ratings.append(val_data)
+
+    train_ratings = pd.concat(train_ratings)
+    test_ratings = pd.concat(test_ratings)
+
+    return train_ratings, test_ratings
+    
 def train_test_split_requests(requests: pd.DataFrame, **kwargs) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
     def split_request(row: pd.Series) -> pd.Series: 
@@ -131,7 +159,7 @@ def get_feature_sizes(ratings: pd.DataFrame) -> Tuple[int, ...]:
     return ratings["user_id"].nunique(), ratings["movie_id"].nunique()
 
 def simulate(
-    language_model: MistralForCausalLM,
+    language_model: AutoModelForCausalLM,
     language_tokenizer: AutoTokenizer,
     split_string: str,
     dataloader: DataLoader,
@@ -142,7 +170,7 @@ def simulate(
 
     with torch.no_grad():
         for movie_ids, movie_titles, prompts in tqdm(dataloader, desc="Simulating", unit="batch"):
-            # Tokenize (llm)
+            # Tokenize input
             input_tokens = language_tokenizer(prompts, add_special_tokens=False, padding=True, return_tensors="pt").to(language_model.device)
 
             # Generate request

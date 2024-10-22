@@ -63,9 +63,39 @@ if os.path.exists("data/ml-20m/descriptions.csv"):
 
 movies["movie_id"] = movies["movie_id"].map(item_id_to_unique_id)
 
+movies.to_csv("data/ml-20m/movies.csv", index=False)
+
 ratings["user_id"] = ratings["user_id"].map(user_id_to_unique_id)
 ratings["movie_id"] = ratings["movie_id"].map(item_id_to_unique_id)
 
 ratings.to_csv("data/ml-20m/ratings.csv", index=False)
 
-movies.to_csv("data/ml-20m/movies.csv", index=False)
+# Process ratings
+grouped_ratings = ratings.sort_values(by=["user_id", 'timestamp']).groupby("user_id").agg({
+    "movie_id": list,
+    "rating": list,
+    "timestamp": list,
+}).reset_index()
+
+processed_ratings = []
+
+for user_id, item_ids, item_ratings, timestamps in grouped_ratings.values:
+    feature_ids = []
+    feature_ratings = []
+
+    for item_id, rating, timestamp in zip(item_ids, item_ratings, timestamps):
+        processed_ratings.append({
+            "user_id": user_id,
+            "feature_ids": feature_ids.copy(),
+            "feature_ratings": feature_ratings.copy(),
+            "item_id": item_id,
+            "rating": rating,
+            "timestamp": timestamp,
+        })
+        
+        feature_ids.append(item_id)
+        feature_ratings.append(rating)
+
+processed_ratings = pd.DataFrame(processed_ratings)
+
+processed_ratings.to_csv("data/ml-20m/processed_ratings.csv", index=False)
