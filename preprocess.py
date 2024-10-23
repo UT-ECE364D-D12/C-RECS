@@ -70,6 +70,7 @@ ratings["movie_id"] = ratings["movie_id"].map(item_id_to_unique_id)
 
 ratings.to_csv("data/ml-20m/ratings.csv", index=False)
 
+
 # Process ratings
 grouped_ratings = ratings.sort_values(by=["user_id", 'timestamp']).groupby("user_id").agg({
     "movie_id": list,
@@ -77,11 +78,13 @@ grouped_ratings = ratings.sort_values(by=["user_id", 'timestamp']).groupby("user
     "timestamp": list,
 }).reset_index()
 
+no_movie_id = ratings["movie_id"].nunique()
+
 processed_ratings = []
 
 for user_id, item_ids, item_ratings, timestamps in grouped_ratings.values:
-    feature_ids = []
-    feature_ratings = []
+    feature_ids = [no_movie_id]
+    feature_ratings = [1.0]
 
     for item_id, rating, timestamp in zip(item_ids, item_ratings, timestamps):
         processed_ratings.append({
@@ -98,4 +101,4 @@ for user_id, item_ids, item_ratings, timestamps in grouped_ratings.values:
 
 processed_ratings = pd.DataFrame(processed_ratings)
 
-processed_ratings.to_csv("data/ml-20m/processed_ratings.csv", index=False)
+processed_ratings.to_hdf("data/ml-20m/processed_ratings.hdf", key="data", mode="w", index=False)
