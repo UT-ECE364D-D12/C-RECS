@@ -2,13 +2,13 @@ from typing import Dict, Tuple
 
 import torch
 from torch import nn, optim
-from torch.nn.utils.clip_grad import clip_grad_norm_
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 import wandb
 from model.recommender import DeepFM
 from utils.loss import RecommenderCriterion
+from utils.misc import send_to_device
 
 
 def train_one_epoch(
@@ -26,7 +26,7 @@ def train_one_epoch(
     for features, targets in tqdm(dataloader, desc=f"Training (Epoch {epoch})"):
         optimizer.zero_grad()
 
-        features, targets = features.to(device), targets.to(device)
+        features, targets = send_to_device(features, device), send_to_device(targets, device)
 
         predictions = model(features)
 
@@ -54,7 +54,7 @@ def evaluate(
 
     with torch.no_grad():
         for features, targets in tqdm(dataloader, desc=f"Validation (Epoch {epoch})"):
-            features, targets = features.to(device), targets.to(device)
+            features, targets = send_to_device(features, device), send_to_device(targets, device)
 
             predictions = model(features)
 

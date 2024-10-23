@@ -1,7 +1,7 @@
 import math
 import os
 import random
-from typing import List
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import torch
@@ -33,6 +33,15 @@ class CosineAnnealingLR(LRScheduler):
     def _get_closed_form_lr(self):
         return [self.eta_min[i] + (base_lr - self.eta_min[i]) * (1 + math.cos(math.pi * self.last_epoch / self.T_max)) / 2 for i, base_lr in enumerate(self.base_lrs)]
 
+def send_to_device(object: Union[Tensor, Dict, List, Tuple], device: str = "cpu") -> Union[Tensor, Dict, List, Tuple]:
+    if isinstance(object, Tensor):
+        return object.to(device)
+    elif isinstance(object, dict):
+        return {k: send_to_device(v, device) for k, v in object.items()}
+    elif isinstance(object, list) or isinstance(object, tuple):
+        return [send_to_device(element, device) for element in object]
+    else:
+        return object
 
 def cosine_distance(x: Tensor, y: Tensor) -> Tensor:
     """
