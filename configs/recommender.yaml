@@ -1,6 +1,6 @@
-name: "ml-20m 2000 Users"
+name: "Processed Ratings"
 random_seed: 42
-batch_size: 1024
+batch_size: 128
 
 recommender:
   embed_dim: 768
