@@ -20,7 +20,7 @@ class RatingsDataset(Dataset):
     def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         feature_ids, feature_ratings, item_id, rating = self.ratings.iloc[idx][["feature_ids", "feature_ratings", "item_id", "rating"]]
 
-        return torch.tensor(feature_ids, dtype=torch.int64), torch.tensor(feature_ratings, dtype=torch.float32), torch.tensor(item_id, dtype=torch.int64), torch.tensor(rating / 5.0, dtype=torch.float32)
+        return torch.tensor(feature_ids, dtype=torch.int64), ((torch.tensor(feature_ratings, dtype=torch.float32)) / 5.0) - 0.5, torch.tensor(item_id, dtype=torch.int64), torch.tensor(rating / 5.0, dtype=torch.float32)
     
 class CollaborativeDataset(Dataset):
     def __init__(self, ratings_data: pd.DataFrame, request_data: pd.DataFrame) -> None:
@@ -113,10 +113,10 @@ class SimulatorDataset(Dataset):
 
         return movie_id, movie_title, prompt
     
-def ratings_collate_fn(batch: List[Tuple[Tensor, Tensor, Tensor, Tensor]]) -> Tuple[Tuple[Tensor, Tensor], Tuple[Tensor, Tensor]]:
+def ratings_collate_fn(batch: List[Tuple[Tensor, Tensor, Tensor, Tensor]]) -> Tuple[Tuple[List[Tensor], List[Tensor], Tensor], Tensor]:
     feature_ids, feature_ratings, target_ids, target_ratings = zip(*batch)
 
-    return (feature_ids, feature_ratings), (torch.stack(target_ids), torch.stack(target_ratings))
+    return (feature_ids, feature_ratings, torch.stack(target_ids)), torch.stack(target_ratings)
 
 def train_test_split_ratings(ratings: pd.DataFrame, train_size: float = 0.8):
     """

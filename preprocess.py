@@ -84,7 +84,7 @@ processed_ratings = []
 
 for user_id, item_ids, item_ratings, timestamps in grouped_ratings.values:
     feature_ids = [no_movie_id]
-    feature_ratings = [1.0]
+    feature_ratings = [5.0]
 
     for item_id, rating, timestamp in zip(item_ids, item_ratings, timestamps):
         processed_ratings.append({

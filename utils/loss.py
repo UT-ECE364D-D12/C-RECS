@@ -25,12 +25,8 @@ class RecommenderCriterion(Criterion):
 
         self.loss_weights = loss_weights
 
-    def forward(self, predictions: Tensor, targets: Tuple[Tensor, Tensor]) -> Dict[str, Tensor]:
-        target_ids, target_ratings = targets
-
-        prediction_ratings = predictions[torch.arange(len(predictions)), target_ids]
-
-        mse_loss = F.mse_loss(prediction_ratings, target_ratings)
+    def forward(self, predictions: Tensor, targets: Tensor) -> Dict[str, Tensor]:
+        mse_loss = F.mse_loss(predictions, targets)
 
         losses = {"mse": mse_loss}
 

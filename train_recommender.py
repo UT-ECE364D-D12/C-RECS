@@ -24,7 +24,7 @@ train_dataset, test_dataset = RatingsDataset(train_ratings), RatingsDataset(test
 
 train_dataloader, test_dataloader = DataLoader(train_dataset, collate_fn=ratings_collate_fn, batch_size=args["batch_size"], shuffle=True), DataLoader(test_dataset, collate_fn=ratings_collate_fn, batch_size=args["batch_size"])
 
-model = DeepFM(feature_dims=get_feature_sizes(ratings), output_dim=ratings["item_id"].nunique(), **args["recommender"]).to(device)
+model = DeepFM(num_items=ratings["item_id"].nunique(), **args["recommender"]).to(device)
 
 optimizer = optim.AdamW(model.parameters(), **args["optimizer"])
 

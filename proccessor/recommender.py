@@ -32,7 +32,7 @@ def train_one_epoch(
 
         batch_losses = criterion(predictions, targets)
 
-        wandb.log({"Train": {"Loss": batch_losses}}, step=wandb.run.step + len(targets))
+        wandb.log({"Train": {"Loss": batch_losses}}, step=wandb.run.step + len(predictions))
 
         losses = {k: losses.get(k, 0) + v.item() for k, v in batch_losses.items()}
         

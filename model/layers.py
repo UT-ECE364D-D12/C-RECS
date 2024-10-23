@@ -1,107 +1,113 @@
-from typing import List
+from typing import List, Tuple
 
-import numpy as np
 import torch
 import torch.nn.functional as F
-from torch import Tensor
+from torch import Tensor, nn
 
 
-class FeaturesLinear(torch.nn.Module):
+class FeaturesEmbedding(nn.Module):
 
-    def __init__(self, field_dims: List[int], output_dim: int):
+    def __init__(self, num_items: int, embed_dim: int):
         super().__init__()
-        self.fc = torch.nn.Embedding(sum(field_dims), output_dim)
-        self.bias = torch.nn.Parameter(torch.zeros((output_dim,)))
 
-    def forward(self, features: Tensor) -> Tensor:
+        self.feature_embedding = nn.Embedding(num_items + 1, embed_dim)
+        self.item_embedding = nn.Embedding(num_items, embed_dim)
+
+        nn.init.xavier_uniform_(self.feature_embedding.weight.data)
+        nn.init.xavier_uniform_(self.item_embedding.weight.data)
+
+    def forward(self, features: Tuple[List[Tensor], List[Tensor], Tensor]) -> Tensor:
         """
         :param features: Float tensor of size ``(batch_size, 2, num_features)``
         """
-        feature_ids, feature_ratings = features
+        feature_ids, feature_ratings, item_ids = features 
 
         num_features = [len(item_ids) for item_ids in feature_ids]
 
-        # Flatten, embed, and scale (sum(num_features), output_dim)
-        linear_embeddings: Tensor = self.fc(torch.cat(feature_ids)) * torch.cat(feature_ratings).unsqueeze(-1)
+        # Embed users
+        user_embeddings: Tensor = self.feature_embedding(torch.cat(feature_ids)) * torch.cat(feature_ratings).unsqueeze(-1)
 
-        # Aggregate the scaled weights per user (batch_size, output_dim)
-        linear_embeddings = torch.stack([torch.sum(linear_embedding, dim=0) for linear_embedding in linear_embeddings.split(num_features)])
+        user_embeddings = torch.stack([torch.sum(embedding, dim=0) for embedding in user_embeddings.split(num_features)])
 
-        return linear_embeddings + self.bias
+        # Embed items
+        item_embeddings = self.item_embedding(item_ids)
 
-class FeaturesEmbedding(torch.nn.Module):
+        return torch.stack((user_embeddings, item_embeddings), dim=1)
+    
+    def __call__(self, *args) -> Tensor:
+        return super().__call__(*args)
 
-    def __init__(self, field_dims, embed_dim):
+class FeaturesLinear(nn.Module):
+
+    def __init__(self, num_items: int, output_dim: int):
         super().__init__()
 
-        self.embedding = torch.nn.Embedding(sum(field_dims), embed_dim)
-        torch.nn.init.xavier_uniform_(self.embedding.weight.data)
+        self.user_fc = nn.Embedding(num_items + 1, output_dim)
+        self.item_fc = nn.Embedding(num_items, output_dim)
 
-    def forward(self, features: Tensor) -> Tensor:
+        self.bias = nn.Parameter(torch.zeros((output_dim,)))
+
+    def forward(self, features: Tuple[List[Tensor], List[Tensor], Tensor]) -> Tensor:
         """
         :param features: Float tensor of size ``(batch_size, 2, num_features)``
         """
-        feature_ids, feature_ratings = features
+        feature_ids, feature_ratings, item_ids = features 
 
         num_features = [len(item_ids) for item_ids in feature_ids]
 
-        # Flatten, embed, and scale (sum(num_features), embed_dim)
-        embeddings: Tensor = self.embedding(torch.cat(feature_ids)) * torch.cat(feature_ratings).unsqueeze(-1)
+        # Embed users
+        user_weights: Tensor = self.user_fc(torch.cat(feature_ids)) * torch.cat(feature_ratings).unsqueeze(-1)
 
-        # Aggregate (batch_size, embed_dim)
-        embeddings = torch.stack([torch.sum(embedding, dim=0) for embedding in embeddings.split(num_features)])
+        user_weights = torch.stack([torch.sum(linear_embedding, dim=0) for linear_embedding in user_weights.split(num_features)])
 
-        return embeddings
+        # Embed items
+        item_weights = self.item_fc(item_ids) 
+
+        return user_weights + item_weights + self.bias
 
 
 class FactorizationMachine(torch.nn.Module):
+
     def __init__(self):
         super().__init__()
 
-    def forward(self, user_embeddings: Tensor, movie_embeddings: Tensor) -> Tensor:
+    def forward(self, embeddings: Tensor) -> Tensor:
         """
-        :param user_embeds: Float tensor of size ``(batch_size, embed_dim)``
-        :param movie_embeds: Float tensor of size ``(batch_size, embed_dim)``
-        :return: Interaction terms of shape ``(batch_size, num_movies)``
+        :param x: Float tensor of size ``(batch_size, num_fields, embed_dim)``
         """
-        batch_size, num_movies, embed_dim = user_embeddings.shape[0], *movie_embeddings.shape
+        square_of_sum = torch.sum(embeddings, dim=1) ** 2
 
-        # Square of the sum: Interact user embeddings with each movie embedding
-        square_of_sum = torch.matmul(user_embeddings, movie_embeddings.T) ** 2
+        sum_of_square = torch.sum(embeddings ** 2, dim=1)
 
-        # Sum of squares: Sum over the embedding dimension of the element-wise product of user embeddings and movie embeddings
-        user_embeddings = user_embeddings.unsqueeze(1).expand(batch_size, num_movies, embed_dim)
-        movie_embeddings = movie_embeddings.unsqueeze(0)
-
-        sum_of_square = torch.sum((user_embeddings * movie_embeddings) ** 2, dim=-1)
-
-        # FM Interaction
-        interaction = 0.5 * (square_of_sum - sum_of_square)
+        interaction = 0.5 * torch.sum(square_of_sum - sum_of_square, dim=1, keepdim=True)
 
         return interaction
 
 
-
-class MultiLayerPerceptron(torch.nn.Module):
+class MultiLayerPerceptron(nn.Module):
 
     def __init__(self, input_dim: int, hidden_dims: List[int], output_dim: int, dropout: float = 0.0) -> None:
         super().__init__()
-        layers = list()
-        for dim in hidden_dims:
-            layers.append(torch.nn.Linear(input_dim, dim))
-            layers.append(torch.nn.BatchNorm1d(dim))
-            layers.append(torch.nn.ReLU())
-            layers.append(torch.nn.Dropout(p=dropout))
-            input_dim = dim
-        layers.append(torch.nn.Linear(input_dim, output_dim))
-        
-        self.mlp = torch.nn.Sequential(*layers)
 
-    def forward(self, x: Tensor) -> Tensor:
+        layers = list()
+
+        for dim in hidden_dims:
+            layers.append(nn.Linear(input_dim, dim))
+            layers.append(nn.BatchNorm1d(dim))
+            layers.append(nn.ReLU())
+            layers.append(nn.Dropout(p=dropout))
+
+            input_dim = dim
+
+        layers.append(nn.Linear(input_dim, output_dim))
+        
+        self.mlp = nn.Sequential(*layers)
+
+    def forward(self, feature_embeddings: Tensor) -> Tensor:
         """
         :param x: Float tensor of size ``(batch_size, embed_dim)``
         """
-        return self.mlp(x)
+        return self.mlp(feature_embeddings)
     
     def __call__(self, x: Tensor) -> Tensor:
         return self.forward(x)
