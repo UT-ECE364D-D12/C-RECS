@@ -17,10 +17,10 @@ class RatingsDataset(Dataset):
     def __len__(self) -> int:
         return len(self.ratings)
     
-    def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor]:
-        user_id, movie_id, rating = self.ratings.iloc[idx][["user_id", "movie_id", "rating"]]
+    def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+        feature_ids, feature_ratings, item_id, rating = self.ratings.iloc[idx][["feature_ids", "feature_ratings", "item_id", "rating"]]
 
-        return torch.tensor([user_id, movie_id]), torch.tensor(rating / 5.0)
+        return torch.tensor(feature_ids, dtype=torch.int64), torch.tensor(feature_ratings, dtype=torch.float32), torch.tensor(item_id, dtype=torch.int64), torch.tensor(rating / 5.0, dtype=torch.float32)
     
 class CollaborativeDataset(Dataset):
     def __init__(self, ratings_data: pd.DataFrame, request_data: pd.DataFrame) -> None:
@@ -112,8 +112,13 @@ class SimulatorDataset(Dataset):
         prompt = self.tokenizer.apply_chat_template(chat, tokenize=False, add_generation_prompt=True)
 
         return movie_id, movie_title, prompt
+    
+def ratings_collate_fn(batch: List[Tuple[Tensor, Tensor, Tensor, Tensor]]) -> Tuple[Tuple[Tensor, Tensor], Tuple[Tensor, Tensor]]:
+    feature_ids, feature_ratings, target_ids, target_ratings = zip(*batch)
 
-def train_test_split_ratings(ratings: pd.DataFrame, train_size: float = 0.85):
+    return (feature_ids, feature_ratings), (torch.stack(target_ids), torch.stack(target_ratings))
+
+def train_test_split_ratings(ratings: pd.DataFrame, train_size: float = 0.8):
     """
     Split ratings into a train and test set. For a user with n ratings the first 
     floor(n * train_size) ratings are used for training and the rest for testing.
@@ -156,7 +161,7 @@ def train_test_split_requests(requests: pd.DataFrame, **kwargs) -> Tuple[pd.Data
     return train_requests, test_requests
 
 def get_feature_sizes(ratings: pd.DataFrame) -> Tuple[int, ...]:
-    return ratings["user_id"].nunique(), ratings["movie_id"].nunique()
+    return (ratings["item_id"].nunique() + 1,)
 
 def simulate(
     language_model: AutoModelForCausalLM,
