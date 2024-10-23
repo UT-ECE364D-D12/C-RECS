@@ -3,29 +3,28 @@ import os
 import pandas as pd
 import torch
 import yaml
-from sklearn.model_selection import train_test_split
 from torch import optim
 from torch.utils.data import DataLoader
 
 import wandb
 from model.recommender import DeepFM
 from proccessor.recommender import train
-from utils.data import RatingsDataset, get_feature_sizes
+from utils.data import RatingsDataset, get_feature_sizes, ratings_collate_fn, train_test_split_ratings
 from utils.loss import RecommenderCriterion
 
 args = yaml.safe_load(open("configs/recommender.yaml", "r"))
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-ratings = pd.read_csv("data/ml-20m/ratings.csv", header=0, names=["user_id", "movie_id", "rating", "timestamp"])
+ratings = pd.read_hdf("data/ml-20m/processed_ratings.hdf")
 
-train_ratings, test_ratings = train_test_split(ratings, train_size=0.8)
+train_ratings, test_ratings = train_test_split_ratings(ratings, train_size=0.8)
 
 train_dataset, test_dataset = RatingsDataset(train_ratings), RatingsDataset(test_ratings)
 
-train_dataloader, test_dataloader = DataLoader(train_dataset, batch_size=args["batch_size"], shuffle=True), DataLoader(test_dataset, batch_size=args["batch_size"])
+train_dataloader, test_dataloader = DataLoader(train_dataset, collate_fn=ratings_collate_fn, batch_size=args["batch_size"], shuffle=True), DataLoader(test_dataset, collate_fn=ratings_collate_fn, batch_size=args["batch_size"])
 
-model = DeepFM(feature_dims=get_feature_sizes(ratings), **args["recommender"]).to(device)
+model = DeepFM(feature_dims=get_feature_sizes(ratings), output_dim=ratings["item_id"].nunique(), **args["recommender"]).to(device)
 
 optimizer = optim.AdamW(model.parameters(), **args["optimizer"])
 
