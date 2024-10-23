@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 import torch
 import torch.nn as nn
@@ -12,23 +12,27 @@ class DeepFM(nn.Module):
     A pytorch implementation of DeepFM.
     Reference: H Guo, et al. DeepFM: A Factorization-Machine based Neural Network for CTR Prediction, 2017.
     """
-    def __init__(self, feature_dims: List[int], embed_dim: int, mlp_dims: List[int], dropout: float, weights: str = None):
+    def __init__(self, feature_dims: List[int], embed_dim: int, mlp_dims: List[int],  output_dim: int, dropout: float, weights: str = None):
         super().__init__()
-        self.linear = FeaturesLinear(feature_dims)
-        self.fm = FactorizationMachine(reduce_sum=True)
+
         self.embedding = FeaturesEmbedding(feature_dims, embed_dim)
-        self.embed_output_dim = len(feature_dims) * embed_dim
-        self.mlp = MultiLayerPerceptron(input_dim=self.embed_output_dim, hidden_dims=mlp_dims, output_dim=1, dropout=dropout)
+        
+        self.linear = FeaturesLinear(feature_dims, output_dim=output_dim)
+        
+        self.fm = FactorizationMachine()
+
+        self.mlp = MultiLayerPerceptron(input_dim=embed_dim, hidden_dims=mlp_dims, output_dim=output_dim, dropout=dropout)
 
         if weights is not None:
             self.load_state_dict(torch.load(weights, weights_only=True))
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, features: Tuple[Tensor, Tensor]) -> Tensor:
         """
         :param x: Long tensor of size ``(batch_size, num_fields)``
         """
-        x_embed = self.embedding(x)
+        user_embeddings = self.embedding(features)
+        movie_embeddings = self.embedding.embedding.weight[:-1]
 
-        x = self.linear(x) + self.fm(x_embed) + self.mlp(x_embed.view(-1, self.embed_output_dim))
+        features = self.linear(features) + self.fm(user_embeddings, movie_embeddings) + self.mlp(user_embeddings)
         
-        return torch.sigmoid(x.squeeze(1))
+        return torch.sigmoid(features)
