@@ -35,11 +35,11 @@ if __name__ == "__main__":
     batch_size = args.batch_size
 
     # Read in the data
-    movies = pd.read_csv(data_path, header=0, names=["movie_id", "movie_title", "genres"])
+    movies = pd.read_csv(data_path, header=0, names=["item_id", "item_title", "genres"])
 
-    movies = movies[["movie_id", "movie_title"]]
+    movies = movies[["item_id", "item_title"]]
 
-    data = pd.DataFrame(columns=["movie_id", "movie_title", "request"])
+    data = pd.DataFrame(columns=["item_id", "item_title", "request"])
 
     for model_name, split_string in zip(MODEL_NAMES, SPLIT_STRINGS):
         print(f"Loading {model_name}...")

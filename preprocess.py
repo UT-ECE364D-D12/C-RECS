@@ -9,23 +9,23 @@ from utils.misc import set_random_seed
 
 set_random_seed(42)
 
-movies = pd.read_csv("data/ml-20m/movies.csv", header=0, names=["movie_id", "movie_title", "genres"])
+movies = pd.read_csv("data/ml-20m/movies.csv", header=0, names=["item_id", "item_title", "genres"])
 
-ratings = pd.read_csv("data/ml-20m/ratings.csv", header=0, names=["user_id", "movie_id", "rating", "timestamp"]).astype({"user_id": int, "movie_id": int, "rating": float, "timestamp": int})
+ratings = pd.read_csv("data/ml-20m/ratings.csv", header=0, names=["user_id", "item_id", "rating", "timestamp"]).astype({"user_id": int, "item_id": int, "rating": float, "timestamp": int})
 
 # Remove movies that have no ratings
-movies = movies[movies["movie_id"].isin(ratings["movie_id"])]
+movies = movies[movies["item_id"].isin(ratings["item_id"])]
 
 # Remove duplicate movies
-ratings = pd.merge(ratings, movies[["movie_id", "movie_title"]], on="movie_id")
+ratings = pd.merge(ratings, movies[["item_id", "item_title"]], on="item_id")
 
-ratings = ratings[["user_id", "movie_title", "rating", "timestamp"]]
+ratings = ratings[["user_id", "item_title", "rating", "timestamp"]]
 
-movies = movies.drop_duplicates("movie_title")
+movies = movies.drop_duplicates("item_title")
 
-ratings = pd.merge(ratings, movies, on="movie_title")
+ratings = pd.merge(ratings, movies, on="item_title")
 
-ratings = ratings[["user_id", "movie_id", "rating", "timestamp"]]
+ratings = ratings[["user_id", "item_id", "rating", "timestamp"]]
 
 # Remove users that have rated less than 20 movies
 num_user_ratings = ratings.groupby("user_id").size()
@@ -37,53 +37,53 @@ users = np.random.choice(ratings["user_id"].unique(), 2000, replace=False)
 
 ratings = ratings[ratings["user_id"].isin(users)]
 
-movies = movies[movies["movie_id"].isin(ratings["movie_id"])]
+movies = movies[movies["item_id"].isin(ratings["item_id"])]
 
-# Convert user_id and movie_id to unique_id
+# Convert user_id and item_id to unique_id
 user_id_to_unique_id = {user_id: i for i, user_id in enumerate(ratings["user_id"].unique())}
-item_id_to_unique_id = {movie_id: i for i, movie_id in enumerate(movies["movie_id"].unique())}
+item_id_to_unique_id = {item_id: i for i, item_id in enumerate(movies["item_id"].unique())}
 
 if os.path.exists("data/ml-20m/requests.csv"):
     requests = pd.read_csv("data/ml-20m/requests.csv")
     
-    requests = requests[requests["movie_id"].isin(movies["movie_id"])]
+    requests = requests[requests["item_id"].isin(movies["item_id"])]
 
-    requests["movie_id"] = requests["movie_id"].map(item_id_to_unique_id)
+    requests["item_id"] = requests["item_id"].map(item_id_to_unique_id)
 
     requests.to_csv("data/ml-20m/requests.csv", index=False)
 
 if os.path.exists("data/ml-20m/descriptions.csv"):
     descriptions = pd.read_csv("data/ml-20m/descriptions.csv")
 
-    descriptions = descriptions[descriptions["movie_id"].isin(movies["movie_id"])]
+    descriptions = descriptions[descriptions["item_id"].isin(movies["item_id"])]
 
-    descriptions["movie_id"] = descriptions["movie_id"].map(item_id_to_unique_id)
+    descriptions["item_id"] = descriptions["item_id"].map(item_id_to_unique_id)
 
     descriptions.to_csv("data/ml-20m/descriptions.csv", index=False)
 
-movies["movie_id"] = movies["movie_id"].map(item_id_to_unique_id)
+movies["item_id"] = movies["item_id"].map(item_id_to_unique_id)
 
 movies.to_csv("data/ml-20m/movies.csv", index=False)
 
 ratings["user_id"] = ratings["user_id"].map(user_id_to_unique_id)
-ratings["movie_id"] = ratings["movie_id"].map(item_id_to_unique_id)
+ratings["item_id"] = ratings["item_id"].map(item_id_to_unique_id)
 
 ratings.to_csv("data/ml-20m/ratings.csv", index=False)
 
 
 # Process ratings
 grouped_ratings = ratings.sort_values(by=["user_id", 'timestamp']).groupby("user_id").agg({
-    "movie_id": list,
+    "item_id": list,
     "rating": list,
     "timestamp": list,
 }).reset_index()
 
-no_movie_id = ratings["movie_id"].nunique()
+no_item_id = ratings["item_id"].nunique()
 
 processed_ratings = []
 
 for user_id, item_ids, item_ratings, timestamps in grouped_ratings.values:
-    feature_ids = [no_movie_id]
+    feature_ids = [no_item_id]
     feature_ratings = [5.0]
 
     for item_id, rating, timestamp in zip(item_ids, item_ratings, timestamps):

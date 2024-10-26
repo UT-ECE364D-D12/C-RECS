@@ -22,15 +22,15 @@ set_random_seed(args["random_seed"])
 
 # Load requests
 requests = pd.read_csv('data/ml-20m/requests.csv')
-requests = requests.groupby("movie_id").agg({
-    "movie_title": "first",
+requests = requests.groupby("item_id").agg({
+    "item_title": "first",
     "request": list,
 }).reset_index()
-requests.set_index("movie_id", inplace=True, drop=False)
+requests.set_index("item_id", inplace=True, drop=False)
 
 # Load descriptions
 descriptions = pd.read_csv("data/ml-20m/descriptions.csv")
-descriptions.set_index("movie_id", inplace=True, drop=False)
+descriptions.set_index("item_id", inplace=True, drop=False)
 
 # Split requests
 train_requests, test_requests = train_test_split_requests(requests, test_size=1)
@@ -54,7 +54,7 @@ encoder = Encoder(**args["encoder"]).to(device)
 
 expander = build_expander(embed_dim=encoder.embed_dim, width=2).to(device)
 
-classifier = build_classifier(embed_dim=encoder.embed_dim, num_classes=requests["movie_id"].nunique()).to(device)
+classifier = build_classifier(embed_dim=encoder.embed_dim, num_classes=requests["item_id"].nunique()).to(device)
 
 optimizer = optim.AdamW([
     {"params": encoder.parameters(), **args["optimizer"]["encoder"]},

@@ -64,11 +64,11 @@ def get_item_embeddings(
     item_ids = []
 
     with torch.no_grad():
-        for movie_ids, descriptions in tqdm(descriptions_dataloader, desc=f"Description Embeddings (Epoch {epoch})"):
+        for item_ids, descriptions in tqdm(descriptions_dataloader, desc=f"Description Embeddings (Epoch {epoch})"):
             batch_embeddings = encoder(descriptions)
 
             item_embeddings.append(batch_embeddings.cpu())
-            item_ids.append(movie_ids.cpu())
+            item_ids.append(item_ids.cpu())
 
     item_embeddings = torch.cat(item_embeddings)
     item_ids = torch.cat(item_ids)
