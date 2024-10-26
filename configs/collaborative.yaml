@@ -1,4 +1,4 @@
-name: "ml-20m Optimized"
+name: "ml-20m Processed Ratings"
 random_seed: 42
 batch_size: 128
 
@@ -18,7 +18,7 @@ recommender:
   embed_dim: 768
   mlp_dims: [768, 768]
   dropout: 0.15
-  weights: NULL
+  weights: "weights/recommender/deepfm.pt"
 
 criterion:
   triplet_margin: 1.2
@@ -47,5 +47,5 @@ optimizer:
     weight_decay: 0.1
 
 train:
-  max_epochs: 5
+  max_epochs: 10
   accumulation_steps: 1

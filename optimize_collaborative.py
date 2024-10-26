@@ -1,22 +1,20 @@
+import random
 import warnings
 
 import optuna
 import pandas as pd
 import torch
 import yaml
-from sklearn.model_selection import train_test_split
 from torch import optim
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 
 from model.encoder import Encoder, build_classifier, build_expander
 from model.recommender import DeepFM
 from proccessor.collaborative import evaluate, train_one_epoch
-from utils.data import CollaborativeDataset, get_feature_sizes, train_test_split_requests
+from utils.data import CollaborativeDataset, collaborative_collate_fn, train_test_split_ratings, train_test_split_requests
 from utils.loss import JointCriterion
 from utils.misc import set_random_seed
-
-warnings.filterwarnings("ignore")
 
 args = yaml.safe_load(open("configs/collaborative.yaml", "r"))
 
@@ -24,24 +22,48 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 set_random_seed(args["random_seed"])
 
-# Load requests
 requests = pd.read_csv('data/ml-20m/requests.csv')
-requests = requests.groupby("movie_id").agg({
-    "movie_title": "first",
+requests = requests.groupby("item_id").agg({
+    "item_title": "first",
     "request": list,
 }).reset_index()
-requests.set_index("movie_id", inplace=True, drop=False)
-
-ratings = pd.read_csv("data/ml-20m/ratings.csv", header=0, names=["user_id", "movie_id", "rating", "timestamp"]).astype({"user_id": int, "movie_id": int, "rating": float, "timestamp": int})
+requests.set_index("item_id", inplace=True, drop=False)
 
 train_requests, test_requests = train_test_split_requests(requests, train_size=0.8)
-train_ratings, test_ratings = train_test_split(ratings, train_size=0.8)
+
+ratings = pd.read_hdf("data/ml-20m/processed_ratings.hdf")
+
+train_ratings, test_ratings = train_test_split_ratings(ratings, train_size=0.8)
 
 train_dataset = CollaborativeDataset(train_ratings, train_requests)
-train_dataloader= DataLoader(train_dataset, batch_size=args["batch_size"], shuffle=True, num_workers=6, drop_last=True)
-
 test_dataset = CollaborativeDataset(test_ratings, test_requests)
-test_dataloader = DataLoader(test_dataset, batch_size=args["batch_size"], num_workers=6, drop_last=True)
+train_subset = Subset(train_dataset, random.sample(range(len(train_dataset)), k=len(test_dataset)))
+
+train_dataloader= DataLoader(
+    train_dataset, 
+    batch_size=args["batch_size"], 
+    shuffle=True,
+    collate_fn=collaborative_collate_fn, 
+    num_workers=6,
+    drop_last=True
+)
+
+test_dataloader = DataLoader(
+    test_dataset, 
+    batch_size=args["batch_size"], 
+    collate_fn=collaborative_collate_fn,
+    num_workers=6, 
+    drop_last=True
+)
+
+train_subset_dataloader = DataLoader(
+    train_subset, 
+    batch_size=args["batch_size"], 
+    shuffle=False, 
+    collate_fn=collaborative_collate_fn, 
+    num_workers=6, 
+    drop_last=True
+)
 
 def objective(trial: optuna.Trial) -> float:
     # Dropout
@@ -72,11 +94,11 @@ def objective(trial: optuna.Trial) -> float:
 
     encoder = Encoder(**args["encoder"]).to(device)
 
-    recommender = DeepFM(feature_dims=get_feature_sizes(ratings), **args["recommender"]).to(device)
-
     expander = build_expander(embed_dim=encoder.embed_dim, **args["expander"]).to(device)
 
-    classifier = build_classifier(embed_dim=encoder.embed_dim, num_classes=requests["movie_id"].nunique(), **args["classifier"]).to(device)
+    classifier = build_classifier(embed_dim=encoder.embed_dim, num_classes=requests["item_id"].nunique(), **args["classifier"]).to(device)
+
+    recommender = DeepFM(num_items=ratings["item_id"].nunique(), **args["recommender"]).to(device)
 
     optimizer = optim.AdamW([
         {"params": encoder.parameters(), **args["optimizer"]["encoder"]},
@@ -118,7 +140,7 @@ if __name__ == "__main__":
         "focal_gamma": args["criterion"]["focal_gamma"],
         "max_epochs": args["train"]["max_epochs"]
     })
-    study.optimize(objective, n_trials=100, gc_after_trial=True, catch=(Exception,))
+    study.optimize(objective, n_trials=100, gc_after_trial=True)
 
     for trial in study.best_trials:
         print(f"\nTrial #{trial.number} MSE: {trial.values[0]} mAP: {trial.values[1]} Rank-1: {trial.values[2]} Rank-5: {trial.values[3]} Rank-10: {trial.values[4]}")
