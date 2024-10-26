@@ -1,16 +1,16 @@
-name: "Processed Ratings Single Rating Higher L2"
+name: "Rating Embeddings"
 random_seed: 42
 batch_size: 1024
 
 recommender:
   embed_dim: 768
   mlp_dims: [768, 768]
-  dropout: 0.9
+  dropout: 0.8
   weights: NULL
 
 optimizer:
   lr: 0.001
-  weight_decay: 0.1
+  weight_decay: 0.01
   
 train:
   max_epochs: 10

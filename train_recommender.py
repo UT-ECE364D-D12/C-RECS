@@ -9,8 +9,10 @@ from torch.utils.data import DataLoader
 import wandb
 from model.recommender import DeepFM
 from proccessor.recommender import train
-from utils.data import RatingsDataset, get_feature_sizes, ratings_collate_fn, train_test_split_ratings
+from utils.data import RatingsDataset, ratings_collate_fn, train_test_split_ratings
 from utils.loss import RecommenderCriterion
+
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
 
 args = yaml.safe_load(open("configs/recommender.yaml", "r"))
 
@@ -22,9 +24,9 @@ train_ratings, test_ratings = train_test_split_ratings(ratings, train_size=0.8)
 
 train_dataset, test_dataset = RatingsDataset(train_ratings), RatingsDataset(test_ratings)
 
-train_dataloader, test_dataloader = DataLoader(train_dataset, collate_fn=ratings_collate_fn, batch_size=args["batch_size"], shuffle=True), DataLoader(test_dataset, collate_fn=ratings_collate_fn, batch_size=args["batch_size"])
+train_dataloader, test_dataloader = DataLoader(train_dataset, collate_fn=ratings_collate_fn, batch_size=args["batch_size"], shuffle=True, num_workers=12), DataLoader(test_dataset, collate_fn=ratings_collate_fn, batch_size=args["batch_size"], num_workers=12)
 
-model = DeepFM(num_items=ratings["item_id"].nunique(), **args["recommender"]).to(device)
+model = DeepFM(num_items=ratings["item_id"].nunique(),).to(device)
 
 optimizer = optim.AdamW(model.parameters(), **args["optimizer"])
 

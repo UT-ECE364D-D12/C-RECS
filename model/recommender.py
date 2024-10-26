@@ -28,7 +28,7 @@ class DeepFM(nn.Module):
 
     def forward(self, features: Tuple[List[Tensor], List[Tensor], Tensor]) -> Tensor:
         """
-        :param x: Long tensor of size ``(batch_size, num_fields)``
+        :param features: (feature_ids, feature_ratings, item_ids)
         """
         embeddings = self.embedding(features)
 

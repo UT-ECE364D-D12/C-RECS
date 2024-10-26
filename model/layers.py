@@ -10,22 +10,28 @@ class FeaturesEmbedding(nn.Module):
     def __init__(self, num_items: int, embed_dim: int):
         super().__init__()
 
+        self.num_items = num_items
+
         self.feature_embedding = nn.Embedding(num_items + 1, embed_dim)
+        self.rating_embedding = nn.Embedding(10, embed_dim)
         self.item_embedding = nn.Embedding(num_items, embed_dim)
 
         nn.init.xavier_uniform_(self.feature_embedding.weight.data)
+        nn.init.xavier_uniform_(self.rating_embedding.weight.data)
         nn.init.xavier_uniform_(self.item_embedding.weight.data)
 
     def forward(self, features: Tuple[List[Tensor], List[Tensor], Tensor]) -> Tensor:
         """
-        :param features: Float tensor of size ``(batch_size, 2, num_features)``
+        :param features: (feature_ids, feature_ratings, item_ids)
         """
         feature_ids, feature_ratings, item_ids = features 
 
+        # Embed user features
         num_features = [len(item_ids) for item_ids in feature_ids]
 
-        # Embed users
-        user_embeddings: Tensor = self.feature_embedding(torch.cat(feature_ids)) * torch.cat(feature_ratings).unsqueeze(-1)
+        rating_embeddings = self.rating_embedding(((torch.cat(feature_ratings) - 0.5) * 2).int())
+
+        user_embeddings: Tensor = self.feature_embedding(torch.cat(feature_ids)) * rating_embeddings
 
         user_embeddings = torch.stack([torch.sum(embedding, dim=0) for embedding in user_embeddings.split(num_features)])
 
@@ -41,8 +47,10 @@ class FeaturesLinear(nn.Module):
 
     def __init__(self, num_items: int, output_dim: int):
         super().__init__()
-
+        self.num_items = num_items
+        
         self.user_fc = nn.Embedding(num_items + 1, output_dim)
+        self.rating_fc = nn.Embedding(10, output_dim)
         self.item_fc = nn.Embedding(num_items, output_dim)
 
         self.bias = nn.Parameter(torch.zeros((output_dim,)))
@@ -53,10 +61,12 @@ class FeaturesLinear(nn.Module):
         """
         feature_ids, feature_ratings, item_ids = features 
 
+        # Embed users
         num_features = [len(item_ids) for item_ids in feature_ids]
 
-        # Embed users
-        user_weights: Tensor = self.user_fc(torch.cat(feature_ids)) * torch.cat(feature_ratings).unsqueeze(-1)
+        rating_weights = self.rating_fc(((torch.cat(feature_ratings) - 0.5) * 2).int())
+
+        user_weights: Tensor = self.user_fc(torch.cat(feature_ids)) * rating_weights
 
         user_weights = torch.stack([torch.sum(linear_embedding, dim=0) for linear_embedding in user_weights.split(num_features)])
 
