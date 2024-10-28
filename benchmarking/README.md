@@ -1,8 +1,7 @@
-@misc{jadon2023comprehensive,
     ### Citation
 
     ```
-    @article{jadon2023survey,
+    @misc{jadon2023comprehensive,
         title={A Comprehensive Survey of Evaluation Techniques for Recommendation Systems}, 
         author={Aryan Jadon and Avinash Patil},
         year={2023},
