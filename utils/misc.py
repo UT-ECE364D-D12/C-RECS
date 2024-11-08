@@ -65,7 +65,7 @@ def set_random_seed(seed: int) -> None:
     torch.cuda.manual_seed(seed)
     torch.use_deterministic_algorithms(True)
     
-    os.environ['PYTHONHASHSEED'] = str(seed) 
+    os.environ["PYTHONHASHSEED"] = str(seed) 
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
 

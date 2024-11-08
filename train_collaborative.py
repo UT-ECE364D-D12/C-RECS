@@ -9,11 +9,12 @@ from torch import optim
 from torch.utils.data import DataLoader, Subset
 
 import wandb
+from model.crecs import CRECS
 from model.encoder import Encoder, build_classifier, build_expander
 from model.recommender import DeepFM
 from proccessor.collaborative import train
 from utils.data import CollaborativeDataset, collaborative_collate_fn, train_test_split_ratings, train_test_split_requests
-from utils.loss import JointCriterion
+from utils.loss import CollaborativeCriterion
 from utils.misc import set_random_seed
 
 warnings.filterwarnings("ignore")
@@ -46,7 +47,7 @@ train_dataloader= DataLoader(
     batch_size=args["batch_size"], 
     shuffle=True,
     collate_fn=collaborative_collate_fn, 
-    num_workers=6,
+    num_workers=8,
     drop_last=True
 )
 
@@ -54,7 +55,7 @@ test_dataloader = DataLoader(
     test_dataset, 
     batch_size=args["batch_size"], 
     collate_fn=collaborative_collate_fn,
-    num_workers=6, 
+    num_workers=8, 
     drop_last=True
 )
 
@@ -66,30 +67,27 @@ train_subset_dataloader = DataLoader(
     num_workers=6, 
     drop_last=True
 )
+classifier = build_classifier(num_classes=requests["item_id"].nunique(), **args["classifier"]).to(device)
 
-encoder = Encoder(**args["encoder"]).to(device)
+args["model"]["recommender"]["num_items"] = requests["item_id"].nunique()
+model = CRECS(classifier=classifier, **args["model"]).to(device)
 
-expander = build_expander(embed_dim=encoder.embed_dim, **args["expander"]).to(device)
-
-classifier = build_classifier(embed_dim=encoder.embed_dim, num_classes=requests["item_id"].nunique(), **args["classifier"]).to(device)
-
-recommender = DeepFM(num_items=ratings["item_id"].nunique(), **args["recommender"]).to(device)
+expander = build_expander(**args["expander"]).to(device)
 
 optimizer = optim.AdamW([
-    {"params": encoder.parameters(), **args["optimizer"]["encoder"]},
+    {"params": model.encoder.parameters(), **args["optimizer"]["encoder"]},
     {"params": expander.parameters(), **args["optimizer"]["expander"]},
-    {"params": classifier.parameters(), **args["optimizer"]["classifier"]},
-    {"params": recommender.parameters(), **args["optimizer"]["recommender"]},
+    {"params": model.classifier.parameters(), **args["optimizer"]["classifier"]},
+    {"params": model.recommender.parameters(), **args["optimizer"]["recommender"]},
+    {"params": model.mlp.parameters(), **args["optimizer"]["mlp"]}
 ])
 
-criterion = JointCriterion(expander=expander, **args["criterion"])
+criterion = CollaborativeCriterion(expander=expander, **args["criterion"])
 
 wandb.init(project="MovieLens", name=args["name"], tags=("Encoder", "Collaborative"), config=args)
 
 train(
-    encoder=encoder,
-    classifier=classifier,
-    recommender=recommender,
+    model=model,
     optimizer=optimizer,
     criterion=criterion,
     train_dataloader=train_dataloader,
@@ -102,9 +100,9 @@ train(
 wandb.finish()
 
 os.makedirs("weights/collaborative", exist_ok=True)
-torch.save(encoder.state_dict(), "weights/collaborative/encoder.pt")
-torch.save(recommender.state_dict(), "weights/collaborative/deepfm.pt")
+torch.save(model.encoder.state_dict(), "weights/collaborative/encoder.pt")
+torch.save(model.recommender.state_dict(), "weights/collaborative/deepfm.pt")
 
-item_embeddings = recommender.embedding.item_embedding.weight
+item_embeddings = model.recommender.embedding.item_embedding.weight
 
 torch.save(item_embeddings, "weights/collaborative/item_embeddings.pt")
