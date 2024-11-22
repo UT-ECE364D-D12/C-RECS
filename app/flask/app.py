@@ -62,13 +62,18 @@ def chat():
     user_ratings = recommender.predict(features).cpu()
 
     # Compute rankings based on ratings and similarity
-    # rankings = user_ratings * similarities
-    rankings = similarities
+    # Get the top k similarities
+    top_k_similarities, top_k_indices = torch.topk(similarities, k=20, largest=True)
 
-    _, indices = torch.topk(rankings, k=5, largest=True)
+    # Rank the top k items based on user ratings
+    top_k_ratings = user_ratings[top_k_indices]
+    _, ranking_indices = torch.sort(top_k_ratings, descending=True)
+
+    # Get the final rankings
+    rankings = top_k_indices[ranking_indices]
 
     # Retrieve the top recommended movies
-    recommended_movies = movies.iloc[indices].item_title.tolist()
+    recommended_movies = movies.iloc[rankings[:5]].item_title.tolist()
 
     # Create response message
     response_message = f"Here are some movie recommendations for you: {', '.join(recommended_movies)}"
