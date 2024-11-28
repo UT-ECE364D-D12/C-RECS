@@ -81,7 +81,6 @@ def build_language_model(model_name: str = "google/gemma-7b-it") -> tuple[AutoMo
         model_name, 
         low_cpu_mem_usage=True, 
         quantization_config=config, 
-        attn_implementation="flash_attention_2"
     )
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
