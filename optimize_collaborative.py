@@ -13,7 +13,7 @@ from model.encoder import Encoder, build_classifier, build_expander
 from model.recommender import DeepFM
 from proccessor.collaborative import evaluate, train_one_epoch
 from utils.data import CollaborativeDataset, collaborative_collate_fn, train_test_split_ratings, train_test_split_requests
-from utils.loss import JointCriterion
+from utils.loss import CollaborativeCriterion
 from utils.misc import set_random_seed
 
 args = yaml.safe_load(open("configs/collaborative.yaml", "r"))
@@ -107,7 +107,7 @@ def objective(trial: optuna.Trial) -> float:
         {"params": recommender.parameters(), **args["optimizer"]["recommender"]},
     ])
 
-    criterion = JointCriterion(expander=expander, **args["criterion"])
+    criterion = CollaborativeCriterion(expander=expander, **args["criterion"])
 
     try:
         for epoch in tqdm(range(args["train"]["max_epochs"]), desc=f"Trial {trial.number}", unit="epochs"):

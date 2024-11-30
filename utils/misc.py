@@ -65,7 +65,7 @@ def set_random_seed(seed: int) -> None:
     torch.cuda.manual_seed(seed)
     torch.use_deterministic_algorithms(True)
     
-    os.environ['PYTHONHASHSEED'] = str(seed) 
+    os.environ["PYTHONHASHSEED"] = str(seed) 
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
 
@@ -81,7 +81,6 @@ def build_language_model(model_name: str = "google/gemma-7b-it") -> tuple[AutoMo
         model_name, 
         low_cpu_mem_usage=True, 
         quantization_config=config, 
-        attn_implementation="flash_attention_2"
     )
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)

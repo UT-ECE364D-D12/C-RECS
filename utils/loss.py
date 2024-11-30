@@ -2,11 +2,10 @@ from typing import Dict, Tuple, Union
 
 import torch
 import torch.nn.functional as F
-from sklearn.metrics import average_precision_score, recall_score
 from torch import Tensor, nn
 
 from model.layers import MultiLayerPerceptron
-from utils.misc import cosine_distance, pairwise_cosine_distance
+from utils.misc import cosine_distance
 
 
 class Criterion(nn.Module):
@@ -130,7 +129,7 @@ class EncoderCriterion(Criterion):
 
         return cov_loss
 
-class JointCriterion(Criterion):
+class CollaborativeCriterion(Criterion):
     """
     A joint criterion that combines the recommender and encoder criteria, used during collaborative training.
     """
@@ -143,7 +142,7 @@ class JointCriterion(Criterion):
 
         self.encoder_criterion = EncoderCriterion(**kwargs)
 
-    def forward(self, rec_predictions: Tensor, rec_targets: Tensor, anchor: Tuple[Tensor, Tensor, Tensor], positive: Tuple[Tensor, Tensor, Tensor], negative: Tuple[Tensor, Tensor, Tensor]) -> Dict[str, Tensor]:
+    def forward(self, rec_predictions: Tensor, rec_targets: Tensor, anchor: Tuple[Tensor, Tensor, Tensor], positive: Tuple[Tensor, Tensor, Tensor], negative: Tuple[Tensor, Tensor, Tensor], similarities: Tuple[Tensor, Tensor]) -> Dict[str, Tensor]:
         recommender_losses = self.recommender_criterion(rec_predictions, rec_targets)
         del recommender_losses["overall"]
 
@@ -151,6 +150,10 @@ class JointCriterion(Criterion):
         del encoder_losses["overall"]
 
         losses = {**recommender_losses, **encoder_losses}
+
+        ap_similarity, an_similarity = similarities
+
+        losses["mlp"] = F.relu(an_similarity - ap_similarity + 0.5).mean()
 
         losses["overall"] = sum(losses[loss_name] * self.loss_weights.get(loss_name, 1) for loss_name in losses)
 
