@@ -1,4 +1,4 @@
-name: "ml-20m Processed Ratings MLP"
+name: "ml-20m Processed Ratings MLP Loaded"
 random_seed: 42
 batch_size: 160
 
@@ -7,7 +7,7 @@ model:
     embed_dim: 768
     mlp_dims: [768, 768]
     dropout: 0.8
-    weights: NULL
+    weights: "weights/recommender/deepfm.pt"
 
   encoder:
     model_name: "bert-base-uncased"
@@ -17,7 +17,7 @@ model:
   mlp:
     hidden_dims: [768, 768]
     output_dim: 1
-    dropout: 0.8
+    dropout: 0.5
 
 
 classifier:
@@ -30,7 +30,7 @@ expander:
   dropout: 0.5
 
 criterion:
-  triplet_margin: 1.2
+  triplet_margin: 1.0
   focal_gamma: 0.75
   vicreg_gamma: 1.0
   loss_weights:
@@ -49,17 +49,17 @@ optimizer:
     weight_decay: 0.1
   classifier:
     lr: 0.0001
-    weight_decay: 0.03
+    weight_decay: 0.01
   expander:
     lr: 0.0001
-    weight_decay: 0.02
+    weight_decay: 0.01
   recommender:
     lr: 0.00005
     weight_decay: 0.1
   mlp:
     lr: 0.0001
-    weight_decay: 0.03
+    weight_decay: 0.01
 
 train:
-  max_epochs: 10
+  max_epochs: 5
   accumulation_steps: 1

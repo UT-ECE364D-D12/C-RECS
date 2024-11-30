@@ -2,11 +2,10 @@ from typing import Dict, Tuple, Union
 
 import torch
 import torch.nn.functional as F
-from sklearn.metrics import average_precision_score, recall_score
 from torch import Tensor, nn
 
 from model.layers import MultiLayerPerceptron
-from utils.misc import cosine_distance, pairwise_cosine_distance
+from utils.misc import cosine_distance
 
 
 class Criterion(nn.Module):
@@ -154,7 +153,7 @@ class CollaborativeCriterion(Criterion):
 
         ap_similarity, an_similarity = similarities
 
-        losses["mlp"] = {F.relu(an_similarity - ap_similarity + self.encoder_criterion.triplet_margin).mean()}
+        losses["mlp"] = F.relu(an_similarity - ap_similarity + 0.5).mean()
 
         losses["overall"] = sum(losses[loss_name] * self.loss_weights.get(loss_name, 1) for loss_name in losses)
 
