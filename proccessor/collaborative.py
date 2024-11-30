@@ -35,13 +35,9 @@ def train_one_epoch(
         rec_features, rec_targets = send_to_device(rec_features, device), send_to_device(rec_targets, device)
         anchor_ids, negative_ids = send_to_device(anchor_ids, device), send_to_device(negative_ids, device)
 
-        rec_predictions, anchor, positive, negative, similarities = model(rec_features, anchor_requests, anchor_ids, negative_ids)
+        rec_predictions, anchor, positive, negative = model(rec_features, anchor_requests, anchor_ids, negative_ids)
 
-        batch_losses = criterion(
-            rec_predictions, rec_targets, 
-            anchor, positive, negative,
-            similarities
-        )
+        batch_losses = criterion(rec_predictions, rec_targets, anchor, positive, negative)
 
         if verbose:
             wandb.log({"Train": {"Loss": batch_losses}}, step=wandb.run.step + len(anchor_requests))
@@ -81,13 +77,9 @@ def evaluate(
             rec_features, rec_targets = send_to_device(rec_features, device), send_to_device(rec_targets, device)
             anchor_ids, negative_ids = send_to_device(anchor_ids, device), send_to_device(negative_ids, device)
 
-            rec_predictions, anchor, positive, negative, similarities = model(rec_features, anchor_requests, anchor_ids, negative_ids)
+            rec_predictions, anchor, positive, negative = model(rec_features, anchor_requests, anchor_ids, negative_ids)
 
-            batch_losses = criterion(
-                rec_predictions, rec_targets, 
-                anchor, positive, negative,
-                similarities
-            )
+            batch_losses = criterion(rec_predictions, rec_targets, anchor, positive, negative)
 
             losses = {k: losses.get(k, 0) + v.item() for k, v in batch_losses.items()}
 

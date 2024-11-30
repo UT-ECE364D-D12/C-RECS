@@ -1,4 +1,7 @@
 import os
+
+os.environ["TOKENIZERS_PARALLELISM"] = "true"
+
 import random
 import warnings
 
@@ -79,7 +82,6 @@ optimizer = optim.AdamW([
     {"params": expander.parameters(), **args["optimizer"]["expander"]},
     {"params": model.classifier.parameters(), **args["optimizer"]["classifier"]},
     {"params": model.recommender.parameters(), **args["optimizer"]["recommender"]},
-    {"params": model.mlp.parameters(), **args["optimizer"]["mlp"]}
 ])
 
 criterion = CollaborativeCriterion(expander=expander, **args["criterion"])

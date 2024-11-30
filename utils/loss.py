@@ -142,7 +142,7 @@ class CollaborativeCriterion(Criterion):
 
         self.encoder_criterion = EncoderCriterion(**kwargs)
 
-    def forward(self, rec_predictions: Tensor, rec_targets: Tensor, anchor: Tuple[Tensor, Tensor, Tensor], positive: Tuple[Tensor, Tensor, Tensor], negative: Tuple[Tensor, Tensor, Tensor], similarities: Tuple[Tensor, Tensor]) -> Dict[str, Tensor]:
+    def forward(self, rec_predictions: Tensor, rec_targets: Tensor, anchor: Tuple[Tensor, Tensor, Tensor], positive: Tuple[Tensor, Tensor, Tensor], negative: Tuple[Tensor, Tensor, Tensor]) -> Dict[str, Tensor]:
         recommender_losses = self.recommender_criterion(rec_predictions, rec_targets)
         del recommender_losses["overall"]
 
@@ -150,10 +150,6 @@ class CollaborativeCriterion(Criterion):
         del encoder_losses["overall"]
 
         losses = {**recommender_losses, **encoder_losses}
-
-        ap_similarity, an_similarity = similarities
-
-        losses["mlp"] = F.relu(an_similarity - ap_similarity + 0.5).mean()
 
         losses["overall"] = sum(losses[loss_name] * self.loss_weights.get(loss_name, 1) for loss_name in losses)
 
