@@ -26,3 +26,5 @@ dependencies:
   - tqdm
   - pytables
   - torchmetrics
+  - flask
+  - flask-cors

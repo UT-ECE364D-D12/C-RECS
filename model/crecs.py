@@ -57,18 +57,24 @@ class CRECS(nn.Module):
 
         return rec_predictions, anchor, positive, negative
 
-    def predict(self, rec_features: Tuple[Tensor, Tensor], requests: List[str], k: int = 10) -> Tuple[Tensor, Tensor]:
+    def predict(self, rec_features: Tuple[Tensor, Tensor], request: str, k: int = 10) -> Tuple[Tensor, Tensor]:
         """
         Return the recommended items along with their predicted ratings for the given features and requests. 
         """
 
+        # Predict the ratings for all items based on the user features
         ratings = self.recommender.predict(rec_features)
 
-        request_embeddings = self.encoder(requests)
+        # Find the k most relevant items based on the user request
+        request_embeddings = self.encoder(request)
 
         similarities = cosine_similarity(request_embeddings, self.recommender.embedding.item_embedding.weight)
 
         _, item_ids = torch.topk(similarities, k=k, largest=True)
+        
+        item_ratings = ratings[item_ids]
 
-        return item_ids, ratings[item_ids]
+        # Sort the item ids based on the predicted ratings
+        _, ranking = torch.sort(item_ratings, descending=True)
 
+        return item_ids[ranking], item_ratings[ranking]
