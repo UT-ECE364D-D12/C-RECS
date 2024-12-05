@@ -86,7 +86,7 @@ optimizer = optim.AdamW([
 
 criterion = CollaborativeCriterion(expander=expander, **args["criterion"])
 
-wandb.init(project="MovieLens", name=args["name"], tags=("Encoder", "Collaborative"), config=args)
+wandb.init(project="C-RECS", name=args["name"], tags=("Encoder", "Collaborative"), config=args)
 
 train(
     model=model,
@@ -102,8 +102,7 @@ train(
 wandb.finish()
 
 os.makedirs("weights/collaborative", exist_ok=True)
-torch.save(model.encoder.state_dict(), "weights/collaborative/encoder.pt")
-torch.save(model.recommender.state_dict(), "weights/collaborative/deepfm.pt")
+torch.save(model.state_dict(), "weights/collaborative/crecs.pt")
 
 item_embeddings = model.recommender.embedding.item_embedding.weight
 

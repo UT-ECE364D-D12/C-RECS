@@ -32,7 +32,7 @@ optimizer = optim.AdamW(model.parameters(), **args["optimizer"])
 
 criterion = RecommenderCriterion()
 
-wandb.init(project="MovieLens", name=args["name"], tags=("Recommender",), config=args)
+wandb.init(project="C-RECS", name=args["name"], tags=("Recommender",), config=args)
 
 train(
     model=model,
