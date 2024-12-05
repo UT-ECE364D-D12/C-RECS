@@ -1,7 +1,7 @@
 from typing import List, Tuple
 
 import torch
-from torch import Tensor, nn, sigmoid
+from torch import Tensor, cosine_similarity, nn
 
 from model.encoder import Encoder
 from model.layers import MultiLayerPerceptron
@@ -9,7 +9,7 @@ from model.recommender import DeepFM
 
 
 class CRECS(nn.Module):
-    def __init__(self, classifier: MultiLayerPerceptron = None, **kwargs):
+    def __init__(self, classifier: MultiLayerPerceptron = None, weights: str = None, **kwargs):
         super().__init__()
 
         self.recommender = DeepFM(**kwargs["recommender"])
@@ -17,6 +17,13 @@ class CRECS(nn.Module):
         self.encoder = Encoder(**kwargs["encoder"])
 
         self.classifier = classifier
+
+        if weights is not None:
+            state_dict = torch.load(weights, map_location="cpu", weights_only=True)
+
+            if self.classifier is None: state_dict = {k: v for k, v in state_dict.items() if "classifier" not in k}
+
+            self.load_state_dict(state_dict)
 
     def forward(
         self, 
@@ -50,6 +57,18 @@ class CRECS(nn.Module):
 
         return rec_predictions, anchor, positive, negative
 
+    def predict(self, rec_features: Tuple[Tensor, Tensor], requests: List[str], k: int = 10) -> Tuple[Tensor, Tensor]:
+        """
+        Return the recommended items along with their predicted ratings for the given features and requests. 
+        """
 
-    def predict(self):
-        raise NotImplementedError
+        ratings = self.recommender.predict(rec_features)
+
+        request_embeddings = self.encoder(requests)
+
+        similarities = cosine_similarity(request_embeddings, self.recommender.embedding.item_embedding.weight)
+
+        _, item_ids = torch.topk(similarities, k=k, largest=True)
+
+        return item_ids, ratings[item_ids]
+

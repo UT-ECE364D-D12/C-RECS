@@ -13,8 +13,7 @@ from torch.utils.data import DataLoader, Subset
 
 import wandb
 from model.crecs import CRECS
-from model.encoder import Encoder, build_classifier, build_expander
-from model.recommender import DeepFM
+from model.encoder import build_classifier, build_expander
 from proccessor.collaborative import train
 from utils.data import CollaborativeDataset, collaborative_collate_fn, train_test_split_ratings, train_test_split_requests
 from utils.loss import CollaborativeCriterion
@@ -103,7 +102,3 @@ wandb.finish()
 
 os.makedirs("weights/collaborative", exist_ok=True)
 torch.save(model.state_dict(), "weights/collaborative/crecs.pt")
-
-item_embeddings = model.recommender.embedding.item_embedding.weight
-
-torch.save(item_embeddings, "weights/collaborative/item_embeddings.pt")
