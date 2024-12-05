@@ -64,7 +64,7 @@ optimizer = optim.AdamW([
 
 criterion = EncoderCriterion(expander, **args["criterion"])
 
-wandb.init(project="MovieLens", name=args["name"], tags=("Encoder", "Content",), config=args)
+wandb.init(project="C-RECS", name=args["name"], tags=("Encoder", "Content",), config=args)
 
 train(
     encoder=encoder,

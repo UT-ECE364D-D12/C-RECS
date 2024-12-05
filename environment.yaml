@@ -16,6 +16,7 @@ dependencies:
   - cinemagoer
   - scikit-learn
   - transformers
+  - sentence-transformers
   - sentencepiece
   - protobuf
   - optuna
@@ -25,5 +26,3 @@ dependencies:
   - tqdm
   - pytables
   - torchmetrics
-  - pip:
-    - flash-attn

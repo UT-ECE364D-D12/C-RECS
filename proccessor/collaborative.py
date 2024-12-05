@@ -1,6 +1,5 @@
 from typing import Dict, Tuple
 
-import optuna
 import torch
 from torch import optim
 from torch.nn.utils.clip_grad import clip_grad_norm_
@@ -8,20 +7,17 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 import wandb
-from model.encoder import Encoder
+from model.crecs import CRECS
 from model.layers import MultiLayerPerceptron
-from model.recommender import DeepFM
-from utils.loss import JointCriterion
+from utils.loss import CollaborativeCriterion
 from utils.metric import get_id_metrics, get_reid_metrics
 from utils.misc import send_to_device
 
 
 def train_one_epoch(
-    encoder: Encoder,
-    classifier: MultiLayerPerceptron,
-    recommender: DeepFM,
+    model: CRECS,
     optimizer: optim.Optimizer,
-    criterion: JointCriterion,
+    criterion: CollaborativeCriterion,
     dataloader: DataLoader,
     epoch: int,
     accumulation_steps: int = 1,
@@ -30,7 +26,7 @@ def train_one_epoch(
 ) -> None:
     losses = {}
 
-    encoder.train()
+    model.train()
 
     data = tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Training (Epoch {epoch})") if verbose else enumerate(dataloader)
     for i, (rec_features, rec_targets, anchors, negative_ids) in data:
@@ -39,25 +35,12 @@ def train_one_epoch(
         rec_features, rec_targets = send_to_device(rec_features, device), send_to_device(rec_targets, device)
         anchor_ids, negative_ids = send_to_device(anchor_ids, device), send_to_device(negative_ids, device)
 
-        rec_predictions = recommender(rec_features)
+        rec_predictions, anchor, positive, negative = model(rec_features, anchor_requests, anchor_ids, negative_ids)
 
-        anchor_embeddings = encoder(anchor_requests)
-        positive_embeddings = recommender.embedding.item_embedding(anchor_ids)
-        negative_embeddings = recommender.embedding.item_embedding(negative_ids)
-
-        anchor_logits = classifier(anchor_embeddings)
-        positive_logits = classifier(positive_embeddings)
-        negative_logits = classifier(negative_embeddings)
-
-        batch_losses = criterion(
-            rec_predictions, rec_targets, 
-            (anchor_embeddings, anchor_logits, anchor_ids), 
-            (positive_embeddings, positive_logits, anchor_ids), 
-            (negative_embeddings, negative_logits, negative_ids)
-        )
+        batch_losses = criterion(rec_predictions, rec_targets, anchor, positive, negative)
 
         if verbose:
-            wandb.log({"Train": {"Loss": batch_losses}}, step=wandb.run.step + len(anchor_embeddings))
+            wandb.log({"Train": {"Loss": batch_losses}}, step=wandb.run.step + len(anchor_requests))
 
         losses = {k: losses.get(k, 0) + v.item() for k, v in batch_losses.items()}
         
@@ -66,21 +49,19 @@ def train_one_epoch(
         loss.backward()
 
         if (i + 1) % accumulation_steps == 0:
-            clip_grad_norm_(encoder.parameters(), max_norm=1.0)
+            clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
             optimizer.zero_grad()
 
 def evaluate(
-    encoder: Encoder,
-    classifier: MultiLayerPerceptron,
-    recommender: DeepFM,
-    criterion: JointCriterion,
+    model: CRECS,
+    criterion: CollaborativeCriterion,
     dataloader: DataLoader,
     epoch: int,
     device: str = "cpu",
     verbose: bool = True
 ) -> Tuple[Dict[str, float], Dict[str, float]]:
-    encoder.eval()
+    model.eval()
 
     losses = {}
 
@@ -96,26 +77,15 @@ def evaluate(
             rec_features, rec_targets = send_to_device(rec_features, device), send_to_device(rec_targets, device)
             anchor_ids, negative_ids = send_to_device(anchor_ids, device), send_to_device(negative_ids, device)
 
-            rec_predictions = recommender(rec_features)
+            rec_predictions, anchor, positive, negative = model(rec_features, anchor_requests, anchor_ids, negative_ids)
 
-            anchor_embeddings = encoder(anchor_requests)
-            positive_embeddings = recommender.embedding.item_embedding(anchor_ids)
-            negative_embeddings = recommender.embedding.item_embedding(negative_ids)
-
-            anchor_logits = classifier(anchor_embeddings)
-            positive_logits = classifier(positive_embeddings)
-            negative_logits = classifier(negative_embeddings)
-
-            batch_losses = criterion(
-                rec_predictions, rec_targets, 
-                (anchor_embeddings, anchor_logits, anchor_ids), 
-                (positive_embeddings, positive_logits, anchor_ids), 
-                (negative_embeddings, negative_logits, negative_ids)
-            )
+            batch_losses = criterion(rec_predictions, rec_targets, anchor, positive, negative)
 
             losses = {k: losses.get(k, 0) + v.item() for k, v in batch_losses.items()}
 
-            request_embeddings.append(anchor_embeddings.cpu())
+            anchor_request_embeddings, anchor_logits, anchor_ids = anchor
+
+            request_embeddings.append(anchor_request_embeddings.cpu())
             request_logits.append(anchor_logits.cpu())
             request_ids.append(anchor_ids.cpu())
             
@@ -125,7 +95,7 @@ def evaluate(
     request_logits = torch.cat(request_logits)
     request_ids = torch.cat(request_ids)
 
-    item_embeddings = recommender.embedding.item_embedding.weight.cpu()
+    item_embeddings = model.recommender.embedding.item_embedding.weight.cpu()
     item_ids = torch.arange(len(item_embeddings))
 
     reid_metrics = get_reid_metrics((request_embeddings, request_ids), (item_embeddings, item_ids))
@@ -135,11 +105,9 @@ def evaluate(
 
 
 def train(
-    encoder: Encoder,
-    classifier: MultiLayerPerceptron,
-    recommender: DeepFM,
+    model: CRECS,
     optimizer: optim.Optimizer,
-    criterion: JointCriterion,
+    criterion: CollaborativeCriterion,
     train_dataloader: DataLoader,
     train_subset_dataloader: DataLoader,
     test_dataloader: DataLoader,
@@ -148,10 +116,10 @@ def train(
     **kwargs
 ) -> None:
     for epoch in range(max_epochs):
-        train_one_epoch(encoder, classifier, recommender, optimizer, criterion, train_dataloader, epoch, accumulation_steps, **kwargs)
+        train_one_epoch(model, optimizer, criterion, train_dataloader, epoch, accumulation_steps, **kwargs)
 
-        _, train_metrics = evaluate(encoder, classifier, recommender, criterion, train_subset_dataloader, epoch, **kwargs)
+        _, train_metrics = evaluate(model, criterion, train_subset_dataloader, epoch, **kwargs)
 
-        test_losses, test_metrics = evaluate(encoder, classifier, recommender, criterion, test_dataloader, epoch, **kwargs)
+        test_losses, test_metrics = evaluate(model, criterion, test_dataloader, epoch, **kwargs)
 
         wandb.log({"Train": {"Metric": train_metrics}, "Validation": {"Loss": test_losses, "Metric": test_metrics}}, step=wandb.run.step)

@@ -2,11 +2,10 @@ from typing import Dict, Tuple, Union
 
 import torch
 import torch.nn.functional as F
-from sklearn.metrics import average_precision_score, recall_score
 from torch import Tensor, nn
 
 from model.layers import MultiLayerPerceptron
-from utils.misc import cosine_distance, pairwise_cosine_distance
+from utils.misc import cosine_distance
 
 
 class Criterion(nn.Module):
@@ -130,7 +129,7 @@ class EncoderCriterion(Criterion):
 
         return cov_loss
 
-class JointCriterion(Criterion):
+class CollaborativeCriterion(Criterion):
     """
     A joint criterion that combines the recommender and encoder criteria, used during collaborative training.
     """
