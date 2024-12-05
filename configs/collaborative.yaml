@@ -1,6 +1,6 @@
-name: "ml-20m Processed Ratings mpnet Loaded"
+name: "ml-20m Processed Ratings Loaded"
 random_seed: 42
-batch_size: 128
+batch_size: 160
 
 model:
   recommender:
@@ -10,7 +10,7 @@ model:
     weights: "weights/recommender/deepfm.pt"
 
   encoder:
-    model_name: "all-mpnet-base-v2"
+    model_name: "bert-base-uncased"
     hidden_dropout_prob: 0.15
     weights: NULL
 
@@ -25,7 +25,7 @@ expander:
   dropout: 0.5
 
 criterion:
-  triplet_margin: 1.0
+  triplet_margin: 1.2
   focal_gamma: 0.75
   vicreg_gamma: 1.0
   loss_weights:
@@ -48,7 +48,7 @@ optimizer:
     lr: 0.0001
     weight_decay: 0.01
   recommender:
-    lr: 0.00005
+    lr: 0.0001
     weight_decay: 0.1
 
 train:
