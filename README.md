@@ -1,7 +1,14 @@
 # C-RECS
 
 Conversational Recommender System
+
+![Results](resources/crecs.jpeg)
+
 ## Setup
+
+The steps to prepare the environment, download the data, and install the app packages are outlined below.
+
+### Install Dependencies
 
 1. Create an environment:
 ```bash
@@ -22,17 +29,31 @@ make
 pip install .
 ```
 
-4. Download MovieLens 20M:
+### Download Data
+
+1. Download MovieLens 20M:
 ```bash
 bash download_data.sh
 ```
 
-5. Preprocess the data:
+2. Preprocess the data:
 ```bash
 python preprocess.py
 ```
 
-## Training
+### Install App Packages
+
+1. Install the required packages for the app frontend:
+```bash
+cd app/frontend
+npm install
+``` 
+
+## Usage
+
+The steps to train the recommendation system and run the app are outlined below.
+
+### Training
 
 1. Ensure you have access to all of the LLM's used in `simulate_requests.py`, and that you are logged into huggingface:
 ```bash
@@ -66,6 +87,19 @@ python generate_descriptions.py
 2. Train the encoder:
 ```bash
 python train_content.py
+```
+
+### App
+
+1. Start the backend:
+```bash
+python app/backend/app.py
+```
+
+2. In a seperate terminal, start the frontend:
+```bash
+cd app/frontend
+npm start
 ```
 
 # Dataset
