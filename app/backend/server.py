@@ -35,11 +35,10 @@ model = CRECS(weights="weights/collaborative/crecs.pt", **args["model"]).to(devi
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
-    print(f"Received request: {user_message}")
-
     data: Dict = request.get_json()
     user_message = data.get('message', '')
 
+    print(f"Received request: {user_message}")
 
     # TODO: Hardcoded user features
     features = (torch.tensor([num_items]), torch.tensor([5.0]))
