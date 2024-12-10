@@ -2,7 +2,7 @@ import os
 import sys
 
 # Add your base directory to the Python path
-BASE_DIR = '/media/tdutton/Files/Programs/Senior/C-RECS'
+BASE_DIR = './'
 sys.path.append(BASE_DIR)
 
 from typing import Dict
