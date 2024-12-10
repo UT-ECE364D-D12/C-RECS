@@ -1,3 +1,11 @@
+import torchvision
+
+torchvision.disable_beta_transforms_warning()
+
+import logging
+
+logging.getLogger("bitsandbytes").setLevel(logging.CRITICAL)
+
 import math
 import os
 import random
@@ -80,7 +88,8 @@ def build_language_model(model_name: str = "google/gemma-7b-it") -> tuple[AutoMo
     model = AutoModelForCausalLM.from_pretrained(
         model_name, 
         low_cpu_mem_usage=True, 
-        quantization_config=config, 
+        quantization_config=config,
+        attn_implementation="flash_attention_2"
     )
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
