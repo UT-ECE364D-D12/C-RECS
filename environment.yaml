@@ -28,3 +28,5 @@ dependencies:
   - torchmetrics
   - flask
   - flask-cors
+  - pyparsing
+  - flash-attn
