@@ -20,15 +20,6 @@ mamba env create -f environment.yaml
 conda activate crecs 
 ```
 
-3. Compile bitsandbytes from source:
-```bash
-git clone https://github.com/TimDettmers/bitsandbytes.git && cd bitsandbytes/
-pip install -r requirements-dev.txt
-cmake -DCOMPUTE_BACKEND=cuda -S .
-make
-pip install .
-```
-
 ### Download Data
 
 1. Download MovieLens 20M:
