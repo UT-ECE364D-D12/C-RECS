@@ -170,25 +170,25 @@ def simulate(
     split_string: str,
     dataloader: DataLoader,
     max_length: int = 2048,
-    output_col = "request"
+    output_column_name: str = "request"
 ) -> pd.DataFrame:
-    data = pd.DataFrame(columns=["item_id", "item_title", output_col])
+    data = pd.DataFrame(columns=["item_id", "item_title", output_column_name])
 
     with torch.no_grad():
         for item_ids, item_titles, prompts in tqdm(dataloader, desc="Simulating", unit="batch"):
             # Tokenize input
-            input_tokens = language_tokenizer(prompts, add_special_tokens=False, padding=True, return_tensors="pt").to(language_model.device)
+            input_tokens = language_tokenizer(prompts, padding=True, return_tensors="pt").to(language_model.device)
 
             # Generate request
-            output_tokens = language_model.generate(**input_tokens, max_new_tokens=max_length, do_sample=True, pad_token_id=language_tokenizer.eos_token_id)
+            output_tokens = language_model.generate(**input_tokens, max_new_tokens=max_length, do_sample=True)
 
             # Decode request
-            batch_output = [language_tokenizer.decode(output, skip_special_tokens=True, clean_up_tokenization_spaces=True).split(split_string)[-1] for output in output_tokens]
+            batch_output = [language_tokenizer.decode(output, skip_special_tokens=True, clean_up_tokenization_spaces=True).split(split_string)[-1].strip('\"') for output in output_tokens]
 
             batch_output = pd.DataFrame({
                 "item_id": item_ids,
                 "item_title": item_titles,
-                output_col: batch_output,
+                output_column_name: batch_output,
             })
 
             data = pd.concat([data, batch_output], ignore_index=True)
