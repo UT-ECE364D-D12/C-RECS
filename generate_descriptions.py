@@ -10,7 +10,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from utils.data import SimulatorDataset, simulate
-from utils.misc import build_language_model
+from utils.llm import build_language_model
 
 # MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.2"
 # SPLIT_STRING = "[/INST] "
@@ -18,7 +18,7 @@ from utils.misc import build_language_model
 MODEL_NAME = "google/gemma-7b-it"
 SPLIT_STRING = "\nmodel\n"
 
-PROMPT = [lambda movie: f"""In one short paragraph, Introduce movie {movie} and describe its attributes precisely including but not limited to genre, director, actors, time period, country, character, plot/theme, mood/tone, critical acclaim/award"""]
+PROMPT = [lambda movie: f"""In one short paragraph, introduce the movie {movie} and describe its attributes precisely including but not limited to genre, director, actors, time period, country, characters, plot/theme, mood/tone, critical acclaim/awards"""]
 
 if __name__ == "__main__":
 
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=2)
 
     # Simulate the requests
-    model_data = simulate(language_model, language_tokenizer, SPLIT_STRING, dataloader, output_col="description")
+    model_data = simulate(language_model, language_tokenizer, SPLIT_STRING, dataloader, output_column_name="description")
 
     data = pd.concat([data, model_data], ignore_index=True)
 
