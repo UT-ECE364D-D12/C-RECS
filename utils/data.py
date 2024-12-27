@@ -165,11 +165,10 @@ def train_test_split_requests(requests: pd.DataFrame, **kwargs) -> Tuple[pd.Data
     return train_requests, test_requests
 
 def simulate(
-    language_model: AutoModelForCausalLM,
-    language_tokenizer: AutoTokenizer,
-    split_string: str,
+    model: AutoModelForCausalLM,
+    tokenizer: AutoTokenizer,
     dataloader: DataLoader,
-    max_length: int = 2048,
+    max_length: int = 256,
     output_column_name: str = "request"
 ) -> pd.DataFrame:
     data = pd.DataFrame(columns=["item_id", "item_title", output_column_name])
@@ -177,18 +176,18 @@ def simulate(
     with torch.no_grad():
         for item_ids, item_titles, prompts in tqdm(dataloader, desc="Simulating", unit="batch"):
             # Tokenize input
-            input_tokens = language_tokenizer(prompts, padding=True, return_tensors="pt").to(language_model.device)
+            batch_input_tokens = tokenizer(prompts, padding=True, return_tensors="pt").to(model.device)
 
-            # Generate request
-            output_tokens = language_model.generate(**input_tokens, max_new_tokens=max_length, do_sample=True)
+            # Generate response
+            batch_output_tokens = model.generate(**batch_input_tokens, max_new_tokens=max_length, do_sample=True)
 
-            # Decode request
-            batch_output = [language_tokenizer.decode(output, skip_special_tokens=True, clean_up_tokenization_spaces=True).split(split_string)[-1].strip('\"') for output in output_tokens]
+            # Decode response
+            responses = [tokenizer.decode(output_tokens[len(input_tokens):], skip_special_tokens=True).strip('\"') for input_tokens, output_tokens in zip(batch_input_tokens["input_ids"], batch_output_tokens)]
 
             batch_output = pd.DataFrame({
                 "item_id": item_ids,
                 "item_title": item_titles,
-                output_column_name: batch_output,
+                output_column_name: responses,
             })
 
             data = pd.concat([data, batch_output], ignore_index=True)

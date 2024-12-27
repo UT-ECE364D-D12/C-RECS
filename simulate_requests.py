@@ -12,8 +12,7 @@ from torch.utils.data import DataLoader
 from utils.data import SimulatorDataset, simulate
 from utils.llm import build_language_model
 
-MODEL_NAMES = ["mistralai/Mistral-7B-Instruct-v0.2", "google/gemma-7b-it"]
-SPLIT_STRINGS = ["[/INST] ", "\nmodel\n"]
+MODEL_NAMES = ["mistralai/Mistral-7B-Instruct-v0.2", "google/gemma-7b-it", "meta-llama/Meta-Llama-3.1-8B-Instruct"]
 
 PROMPT_GENERATORS = [
     # Normal
@@ -55,7 +54,7 @@ if __name__ == "__main__":
 
     data = pd.DataFrame(columns=["item_id", "item_title", "request"])
 
-    for model_name, split_string in zip(MODEL_NAMES, SPLIT_STRINGS):
+    for model_name in MODEL_NAMES:
         print(f"Loading {model_name}...")
 
         # Load the model and tokenizer
@@ -68,7 +67,7 @@ if __name__ == "__main__":
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=2)
 
         # Simulate the requests
-        model_data = simulate(language_model, language_tokenizer, split_string, dataloader, output_column_name="request")
+        model_data = simulate(language_model, language_tokenizer, dataloader, output_column_name="request")
 
         data = pd.concat([data, model_data], ignore_index=True)
 
