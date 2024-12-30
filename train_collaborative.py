@@ -2,8 +2,11 @@ import os
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
-import random
 import warnings
+
+warnings.filterwarnings("ignore")
+
+import random
 
 import pandas as pd
 import torch
@@ -18,8 +21,6 @@ from proccessor.collaborative import train
 from utils.data import CollaborativeDataset, collaborative_collate_fn, train_test_split_ratings, train_test_split_requests
 from utils.loss import CollaborativeCriterion
 from utils.misc import set_random_seed
-
-warnings.filterwarnings("ignore")
 
 args = yaml.safe_load(open("configs/collaborative.yaml", "r"))
 
@@ -66,7 +67,7 @@ train_subset_dataloader = DataLoader(
     batch_size=args["batch_size"], 
     shuffle=False, 
     collate_fn=collaborative_collate_fn, 
-    num_workers=6, 
+    num_workers=8, 
     drop_last=True
 )
 classifier = build_classifier(num_classes=requests["item_id"].nunique(), **args["classifier"]).to(device)

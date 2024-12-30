@@ -8,10 +8,9 @@ from tqdm import tqdm
 
 import wandb
 from model.crecs import CRECS
-from model.layers import MultiLayerPerceptron
 from utils.loss import CollaborativeCriterion
 from utils.metric import get_id_metrics, get_reid_metrics
-from utils.misc import send_to_device
+from utils.misc import get_model_statistics, send_to_device
 
 
 def train_one_epoch(
@@ -20,6 +19,7 @@ def train_one_epoch(
     criterion: CollaborativeCriterion,
     dataloader: DataLoader,
     epoch: int,
+    max_norm: float = 5.0,
     accumulation_steps: int = 1,
     device: str = "cpu",
     verbose: bool = True,
@@ -39,17 +39,20 @@ def train_one_epoch(
 
         batch_losses = criterion(rec_predictions, rec_targets, anchor, positive, negative)
 
-        if verbose:
-            wandb.log({"Train": {"Loss": batch_losses}}, step=wandb.run.step + len(anchor_requests))
-
         losses = {k: losses.get(k, 0) + v.item() for k, v in batch_losses.items()}
         
         loss = batch_losses["overall"]
 
         loss.backward()
 
+        if verbose:
+            model_statistics = {module: get_model_statistics(model.__getattr__(module.lower()))
+                               for module in ["Encoder", "Recommender", "Classifier"]}
+
+            wandb.log({"Train": {"Loss": batch_losses}, **model_statistics}, step=wandb.run.step + len(anchor_requests))
+
         if (i + 1) % accumulation_steps == 0:
-            clip_grad_norm_(model.parameters(), max_norm=1.0)
+            # clip_grad_norm_(model.parameters(), max_norm=max_norm)
             optimizer.step()
             optimizer.zero_grad()
 
@@ -112,11 +115,12 @@ def train(
     train_subset_dataloader: DataLoader,
     test_dataloader: DataLoader,
     max_epochs: int,
+    max_norm: float = 5.0,
     accumulation_steps: int = 1,
     **kwargs
 ) -> None:
     for epoch in range(max_epochs):
-        train_one_epoch(model, optimizer, criterion, train_dataloader, epoch, accumulation_steps, **kwargs)
+        train_one_epoch(model, optimizer, criterion, train_dataloader, epoch, max_norm, accumulation_steps, **kwargs)
 
         _, train_metrics = evaluate(model, criterion, train_subset_dataloader, epoch, **kwargs)
 

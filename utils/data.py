@@ -168,7 +168,7 @@ def simulate(
     model: AutoModelForCausalLM,
     tokenizer: AutoTokenizer,
     dataloader: DataLoader,
-    max_length: int = 256,
+    max_length: int = 64,
     output_column_name: str = "request"
 ) -> pd.DataFrame:
     data = pd.DataFrame(columns=["item_id", "item_title", output_column_name])

@@ -1,6 +1,3 @@
-# import torchvision
-# torchvision.disable_beta_transforms_warning()
-
 import math
 import os
 import random
@@ -8,7 +5,7 @@ from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import torch
-from torch import Tensor
+from torch import Tensor, nn
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 from torchmetrics.functional import pairwise_cosine_similarity
@@ -69,3 +66,40 @@ def set_random_seed(seed: int) -> None:
     
     os.environ["PYTHONHASHSEED"] = str(seed) 
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+
+def get_model_statistics(model: nn.Module, norm_type: int = 2) -> dict:
+    """
+    Returns the parameter and gradient statistics of a model.
+    """
+
+    num_params = 0
+    num_active_params = 0
+    parameter_abs = 0.0
+    parameter_norm = 0.0
+    gradient_abs = 0.0
+    gradient_norm = 0.0
+
+    for param in model.parameters():
+        # Parameter stats
+        parameter_abs += param.detach().data.abs().sum().item()
+        parameter_norm += param.detach().data.norm(norm_type).item() ** norm_type
+
+        num_params += param.numel()
+
+        # Gradient stats
+        if param.grad is not None and param.requires_grad:
+            gradient_abs += param.grad.detach().data.abs().sum().item()
+            gradient_norm += param.grad.detach().data.norm(norm_type).item() ** norm_type
+
+            num_active_params += param.numel()
+
+    return {
+        "Parameter": {
+            "Abs": parameter_abs / num_params,
+            "Norm": parameter_norm ** (1.0 / norm_type),
+        },
+        "Gradient": {
+            "Abs": gradient_abs / num_active_params,
+            "Norm": gradient_norm ** (1.0 / norm_type),
+        }
+    }

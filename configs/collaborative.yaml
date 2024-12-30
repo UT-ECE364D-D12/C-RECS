@@ -1,15 +1,19 @@
-name: "ml-20m Processed Ratings Loaded"
+name: "ml-20m Processed Ratings New Requests"
 random_seed: 42
-batch_size: 160
+batch_size: 128
 
 model:
   recommender:
     embed_dim: 768
     mlp_dims: [768, 768]
-    dropout: 0.8
-    weights: "weights/recommender/deepfm.pt"
+    dropout: 0.5
+    # weights: "weights/recommender/deepfm.pt"
 
   encoder:
+    # model_name: "answerdotai/ModernBERT-base"
+    # embedding_dropout: 0.1
+    # mlp_dropout: 0.1
+    # attention_dropout: 0.1
     model_name: "bert-base-uncased"
     hidden_dropout_prob: 0.15
     weights: NULL
