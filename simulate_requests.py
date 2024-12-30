@@ -9,10 +9,11 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
+from model.llm import build_language_model
 from utils.data import SimulatorDataset, simulate
-from utils.llm import build_language_model
 
-MODEL_NAMES = ["mistralai/Mistral-7B-Instruct-v0.2", "google/gemma-7b-it", "meta-llama/Meta-Llama-3.1-8B-Instruct"]
+MODEL_NAMES = ["google/gemma-7b-it", "mistralai/Mistral-7B-Instruct-v0.2", "meta-llama/Meta-Llama-3.1-8B-Instruct"]
+BATCH_SIZES = [16, 32, 32]
 
 PROMPT_GENERATORS = [
     # Normal
@@ -39,13 +40,11 @@ if __name__ == "__main__":
 
     parser.add_argument('--dataset_path', type=str, default="data/ml-20m/movies.csv", help='Path to the dataset')
     parser.add_argument('--output_path', type=str, default="data/ml-20m/requests.csv", help='Path to save the requests')
-    parser.add_argument('--batch_size', type=int, default=32, help='Batch size for the dataloader')
 
     args = parser.parse_args()
 
     data_path = args.dataset_path
     output_path = args.output_path
-    batch_size = args.batch_size
 
     # Read in the data
     movies = pd.read_csv(data_path, header=0, names=["item_id", "item_title", "genres"])
@@ -54,7 +53,7 @@ if __name__ == "__main__":
 
     data = pd.DataFrame(columns=["item_id", "item_title", "request"])
 
-    for model_name in MODEL_NAMES:
+    for model_name, batch_size in zip(MODEL_NAMES, BATCH_SIZES):
         print(f"Loading {model_name}...")
 
         # Load the model and tokenizer

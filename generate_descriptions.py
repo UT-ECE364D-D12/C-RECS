@@ -9,8 +9,8 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
+from model.llm import build_language_model
 from utils.data import SimulatorDataset, simulate
-from utils.llm import build_language_model
 
 # MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.2"
 # SPLIT_STRING = "[/INST] "
