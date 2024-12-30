@@ -16,9 +16,7 @@ class FeaturesEmbedding(nn.Module):
         self.rating_embedding = nn.Embedding(10, embed_dim)
         self.item_embedding = nn.Embedding(num_items, embed_dim)
 
-        nn.init.xavier_uniform_(self.feature_embedding.weight.data)
-        nn.init.xavier_uniform_(self.rating_embedding.weight.data)
-        nn.init.xavier_uniform_(self.item_embedding.weight.data)
+        self._initialize_weights()
 
     def forward(self, features: Tuple[List[Tensor], List[Tensor], Tensor]) -> Tensor:
         """
@@ -39,6 +37,11 @@ class FeaturesEmbedding(nn.Module):
         item_embeddings = self.item_embedding(item_ids)
 
         return torch.stack((user_embeddings, item_embeddings), dim=1)
+
+    def _initialize_weights(self):
+        nn.init.xavier_uniform_(self.feature_embedding.weight.data)
+        nn.init.xavier_uniform_(self.rating_embedding.weight.data)
+        nn.init.xavier_uniform_(self.item_embedding.weight.data)
     
     def __call__(self, *args) -> Tensor:
         return super().__call__(*args)
@@ -54,6 +57,8 @@ class FeaturesLinear(nn.Module):
         self.item_fc = nn.Embedding(num_items, output_dim)
 
         self.bias = nn.Parameter(torch.zeros((output_dim,)))
+
+        self._initialize_weights()
 
     def forward(self, features: Tuple[List[Tensor], List[Tensor], Tensor]) -> Tensor:
         """
@@ -75,6 +80,12 @@ class FeaturesLinear(nn.Module):
 
         return user_weights + item_weights + self.bias
 
+    def _initialize_weights(self):
+        nn.init.xavier_uniform_(self.user_fc.weight.data)
+        nn.init.xavier_uniform_(self.rating_fc.weight.data)
+        nn.init.xavier_uniform_(self.item_fc.weight.data)
+
+        nn.init.zeros_(self.bias.data)
 
 class FactorizationMachine(torch.nn.Module):
 
@@ -99,7 +110,7 @@ class MultiLayerPerceptron(nn.Module):
     def __init__(self, input_dim: int, hidden_dims: List[int], output_dim: int, dropout: float = 0.0) -> None:
         super().__init__()
 
-        layers = list()
+        layers = []
 
         for dim in hidden_dims:
             layers.append(nn.Linear(input_dim, dim))
@@ -110,8 +121,10 @@ class MultiLayerPerceptron(nn.Module):
             input_dim = dim
 
         layers.append(nn.Linear(input_dim, output_dim))
-        
+
         self.mlp = nn.Sequential(*layers)
+
+        self._initialize_weights()
 
     def forward(self, feature_embeddings: Tensor) -> Tensor:
         """
@@ -121,3 +134,9 @@ class MultiLayerPerceptron(nn.Module):
     
     def __call__(self, x: Tensor) -> Tensor:
         return self.forward(x)
+    
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight.data)
+                nn.init.zeros_(m.bias.data)
