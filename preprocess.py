@@ -32,8 +32,8 @@ num_user_ratings = ratings.groupby("user_id").size()
 
 ratings = ratings[ratings["user_id"].isin(num_user_ratings[num_user_ratings >= 20].index)]
 
-# Sample 2000 users
-users = np.random.choice(ratings["user_id"].unique(), 2000, replace=False)
+# Sample a subset of the users
+users = np.random.choice(ratings["user_id"].unique(), 8000, replace=False)
 
 ratings = ratings[ratings["user_id"].isin(users)]
 
@@ -101,4 +101,4 @@ for user_id, item_ids, item_ratings, timestamps in grouped_ratings.values:
 
 processed_ratings = pd.DataFrame(processed_ratings)
 
-processed_ratings.to_hdf("data/ml-20m/processed_ratings.hdf", key="data", mode="w", index=False)
+processed_ratings.to_parquet("data/ml-20m/processed_ratings.parquet", index=False, engine='pyarrow', compression='snappy')

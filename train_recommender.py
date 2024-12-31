@@ -18,7 +18,7 @@ args = yaml.safe_load(open("configs/recommender.yaml", "r"))
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-ratings = pd.read_hdf("data/ml-20m/processed_ratings.hdf")
+ratings = pd.read_parquet("data/ml-20m/processed_ratings.parquet", engine="pyarrow")
 
 train_ratings, test_ratings = train_test_split_ratings(ratings, train_size=0.8)
 

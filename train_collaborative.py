@@ -37,7 +37,7 @@ requests.set_index("item_id", inplace=True, drop=False)
 
 train_requests, test_requests = train_test_split_requests(requests, train_size=0.8)
 
-ratings = pd.read_hdf("data/ml-20m/processed_ratings.hdf")
+ratings = pd.read_parquet("data/ml-20m/processed_ratings.parquet", engine="pyarrow")
 
 train_ratings, test_ratings = train_test_split_ratings(ratings, train_size=0.8)
 
