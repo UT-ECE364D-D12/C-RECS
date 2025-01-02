@@ -1,3 +1,4 @@
+from math import sqrt
 from typing import List, Tuple
 
 import torch
@@ -27,7 +28,7 @@ class FeaturesEmbedding(nn.Module):
         # Embed user features
         num_features = [len(item_ids) for item_ids in feature_ids]
 
-        rating_embeddings = self.rating_embedding(((torch.cat(feature_ratings) - 0.5) * 2).int())
+        rating_embeddings = self.rating_embedding(((torch.cat(feature_ratings) - 0.5) * 2).int().clamp(0, 9))
 
         user_embeddings: Tensor = self.feature_embedding(torch.cat(feature_ids)) * rating_embeddings
 
@@ -39,9 +40,9 @@ class FeaturesEmbedding(nn.Module):
         return torch.stack((user_embeddings, item_embeddings), dim=1)
 
     def _initialize_weights(self):
-        nn.init.xavier_uniform_(self.feature_embedding.weight.data)
-        nn.init.xavier_uniform_(self.rating_embedding.weight.data)
-        nn.init.xavier_uniform_(self.item_embedding.weight.data)
+        nn.init.kaiming_uniform_(self.feature_embedding.weight.data, a=sqrt(5))
+        nn.init.kaiming_uniform_(self.rating_embedding.weight.data, a=sqrt(5))
+        nn.init.kaiming_uniform_(self.item_embedding.weight.data, a=sqrt(5))
     
     def __call__(self, *args) -> Tensor:
         return super().__call__(*args)
@@ -81,10 +82,9 @@ class FeaturesLinear(nn.Module):
         return user_weights + item_weights + self.bias
 
     def _initialize_weights(self):
-        nn.init.xavier_uniform_(self.user_fc.weight.data)
-        nn.init.xavier_uniform_(self.rating_fc.weight.data)
-        nn.init.xavier_uniform_(self.item_fc.weight.data)
-
+        nn.init.kaiming_uniform_(self.user_fc.weight.data, a=sqrt(5))
+        nn.init.kaiming_uniform_(self.rating_fc.weight.data, a=sqrt(5))
+        nn.init.kaiming_uniform_(self.item_fc.weight.data, a=sqrt(5))
         nn.init.zeros_(self.bias.data)
 
 class FactorizationMachine(torch.nn.Module):
@@ -138,5 +138,5 @@ class MultiLayerPerceptron(nn.Module):
     def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Linear):
-                nn.init.xavier_uniform_(m.weight.data)
+                nn.init.kaiming_uniform_(m.weight.data, a=sqrt(5))
                 nn.init.zeros_(m.bias.data)

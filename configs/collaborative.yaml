@@ -1,4 +1,4 @@
-name: "ml-20m ModernBERT 8k Users Smaller Weight Decay No Weight Norm/Init"
+name: "ml-20m ModernBERT 8k Users Smaller Weight Decay Kaimig Init"
 random_seed: 42
 batch_size: 128
 
@@ -46,7 +46,7 @@ optimizer:
     eps: 1.0e-6
   encoder:
     lr: 8.0e-5
-    weight_decay: 0.01
+    weight_decay: 0.05
   classifier:
     lr: 1.0e-4
     weight_decay: 0.05
@@ -58,5 +58,5 @@ optimizer:
     weight_decay: 0.1
 
 train:
-  max_epochs: 3
+  max_epochs: 4
   accumulation_steps: 1

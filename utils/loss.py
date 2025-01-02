@@ -29,7 +29,6 @@ class RecommenderCriterion(Criterion):
         super().__init__()
 
         self.loss_weights = loss_weights
-        # self.loss_weights = {k: v / sum(loss_weights.values()) for k, v in loss_weights.items()}
 
     def forward(self, predictions: Tensor, targets: Tensor) -> Dict[str, Tensor]:
         mse_loss = F.mse_loss(predictions, targets)
@@ -49,7 +48,6 @@ class EncoderCriterion(Criterion):
         self.focal_gamma = focal_gamma
         self.vicreg_gamma = vicreg_gamma
         self.loss_weights = loss_weights
-        # self.loss_weights = {k: v / sum(loss_weights.values()) for k, v in loss_weights.items()}
     
     def forward(self, anchor: Tuple[Tensor, Tensor, Tensor], positive: Tuple[Tensor, Tensor, Tensor], negative: Tuple[Tensor, Tensor, Tensor]) -> Dict[str, Tensor]:
         anchor_embeddings, anchor_logits, anchor_ids = anchor
@@ -151,7 +149,6 @@ class CollaborativeCriterion(Criterion):
         super().__init__()
 
         self.loss_weights = loss_weights
-        # self.loss_weights = {k: v / sum(loss_weights.values()) for k, v in loss_weights.items()}
 
         self.recommender_criterion = RecommenderCriterion()
 
