@@ -18,11 +18,18 @@ class Criterion(nn.Module):
     def __call__(self, *args) -> Dict[str, Tensor]:
         return super().__call__(*args)
 
+    def _check_for_nans(self, losses: Dict[str, Tensor]) -> None:
+        nan_losses = [name for name, loss in losses.items() if torch.isnan(loss).any()]
+
+        if nan_losses:
+            raise ValueError(f"NaNs detected in losses: {nan_losses}")
+
 class RecommenderCriterion(Criterion):
     def __init__(self, loss_weights: Dict[str, float] = {}) -> None:
         super().__init__()
 
         self.loss_weights = loss_weights
+        # self.loss_weights = {k: v / sum(loss_weights.values()) for k, v in loss_weights.items()}
 
     def forward(self, predictions: Tensor, targets: Tensor) -> Dict[str, Tensor]:
         mse_loss = F.mse_loss(predictions, targets)
@@ -42,6 +49,7 @@ class EncoderCriterion(Criterion):
         self.focal_gamma = focal_gamma
         self.vicreg_gamma = vicreg_gamma
         self.loss_weights = loss_weights
+        # self.loss_weights = {k: v / sum(loss_weights.values()) for k, v in loss_weights.items()}
     
     def forward(self, anchor: Tuple[Tensor, Tensor, Tensor], positive: Tuple[Tensor, Tensor, Tensor], negative: Tuple[Tensor, Tensor, Tensor]) -> Dict[str, Tensor]:
         anchor_embeddings, anchor_logits, anchor_ids = anchor
@@ -49,6 +57,12 @@ class EncoderCriterion(Criterion):
         negative_embeddings, negative_logits, negative_ids = negative
 
         anchor_ids, positive_ids, negative_ids = anchor_ids.to(device := anchor_embeddings.device), positive_ids.to(device), negative_ids.to(device)
+
+        if torch.isnan(torch.stack([anchor_embeddings, positive_embeddings, negative_embeddings])).any():
+            raise ValueError("NaNs detected in embeddings")
+
+        if torch.isnan(torch.stack([anchor_logits, positive_logits, negative_logits])).any():
+            raise ValueError("NaNs detected in logits")
         
         triplet_loss = self._get_triplet_loss(anchor_embeddings, positive_embeddings, negative_embeddings)
 
@@ -87,7 +101,7 @@ class EncoderCriterion(Criterion):
         """
         Returns the focal loss. Similar to cross-entropy loss but with a focus on hard examples.
         """
-        prediction_probabilities = prediction_logits.softmax(dim=-1)
+        prediction_probabilities = prediction_logits.softmax(dim=-1).clamp_min(1e-6)
 
         loss_ce = F.nll_loss(torch.log(prediction_probabilities), target_labels, reduction="none")
 
@@ -137,6 +151,7 @@ class CollaborativeCriterion(Criterion):
         super().__init__()
 
         self.loss_weights = loss_weights
+        # self.loss_weights = {k: v / sum(loss_weights.values()) for k, v in loss_weights.items()}
 
         self.recommender_criterion = RecommenderCriterion()
 
@@ -150,6 +165,8 @@ class CollaborativeCriterion(Criterion):
         del encoder_losses["overall"]
 
         losses = {**recommender_losses, **encoder_losses}
+
+        self._check_for_nans(losses)
 
         losses["overall"] = sum(losses[loss_name] * self.loss_weights.get(loss_name, 1) for loss_name in losses)
 
