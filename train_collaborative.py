@@ -81,8 +81,9 @@ optimizer = optim.AdamW([
     {"params": model.encoder.parameters(), **args["optimizer"]["encoder"]},
     {"params": expander.parameters(), **args["optimizer"]["expander"]},
     {"params": model.classifier.parameters(), **args["optimizer"]["classifier"]},
-    {"params": model.recommender.parameters(), **args["optimizer"]["recommender"]},
-])
+    {"params": model.recommender.parameters(), **args["optimizer"]["recommender"]}],
+    **args["optimizer"]["all"]
+)
 
 criterion = CollaborativeCriterion(expander=expander, **args["criterion"])
 
