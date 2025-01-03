@@ -12,12 +12,24 @@ The steps to prepare the environment, download the data, and install the app pac
 
 1. Create an environment:
 ```bash
-mamba env create -f environment.yaml
+mamba env create -f environments/environment.yaml
 ```
 
 2. Activate the environment:
 ```bash
 conda activate crecs 
+```
+
+<!-- TODO: Remove after next transformers release includes answerdotai/ModernBERT-base -->
+3. Install `transformers` from main:
+```bash
+pip install git+https://github.com/huggingface/transformers.git
+```
+
+
+Note: If you experience issues with `numpy`, try installing it separately:
+```bash
+mamba install -y "numpy==1.26.4"
 ```
 
 ### Download Data

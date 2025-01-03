@@ -8,7 +8,6 @@ dependencies:
   - pip
   - pytorch
   - pytorch-cuda=11.8
-  - cudatoolkit=11.8
   - bitsandbytes
   - peft
   - numpy

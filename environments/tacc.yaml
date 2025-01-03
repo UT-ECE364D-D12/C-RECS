@@ -1,0 +1,30 @@
+name: test
+channels:
+  - conda-forge
+  - pytorch
+  - nvidia  
+dependencies:
+  - python==3.10
+  - pip
+  - pytorch
+  - pytorch-cuda=12.4
+  - peft
+  - numpy
+  - pandas
+  - cinemagoer
+  - scikit-learn
+  - transformers
+  - sentence-transformers
+  - sentencepiece
+  - protobuf
+  - optuna
+  - wandb
+  - datasets
+  - ipykernel
+  - tqdm
+  - pytables
+  - torchmetrics
+  - flask
+  - flask-cors
+  - pyparsing
+  - flash-attn
