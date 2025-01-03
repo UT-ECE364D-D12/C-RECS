@@ -67,6 +67,19 @@ def set_random_seed(seed: int) -> None:
     os.environ["PYTHONHASHSEED"] = str(seed) 
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
+def suppress_warnings() -> None:
+    """
+    Suppress warnings.
+    """
+    import logging
+
+    logging.getLogger("bitsandbytes").setLevel(logging.CRITICAL)
+    logging.getLogger("transformers").setLevel(logging.CRITICAL)
+
+    import warnings
+
+    warnings.filterwarnings("ignore")
+
 def get_model_statistics(model: nn.Module, norm_type: int = 2) -> dict:
     """
     Returns the parameter and gradient statistics of a model.

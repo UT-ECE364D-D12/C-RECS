@@ -1,5 +1,4 @@
 import random
-import warnings
 
 import optuna
 import pandas as pd

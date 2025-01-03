@@ -1,11 +1,6 @@
-import logging
+from utils.misc import suppress_warnings
 
-logging.getLogger("bitsandbytes").setLevel(logging.CRITICAL)
-logging.getLogger("transformers").setLevel(logging.CRITICAL)
-
-import warnings
-
-warnings.filterwarnings("ignore")
+suppress_warnings()
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig

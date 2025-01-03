@@ -1,10 +1,10 @@
+from utils.misc import suppress_warnings
+
+suppress_warnings()
+
 import os
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
-
-import warnings
-
-warnings.filterwarnings("ignore")
 
 import random
 
