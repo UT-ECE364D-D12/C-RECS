@@ -1,4 +1,4 @@
-name: test
+name: crecs
 channels:
   - conda-forge
   - pytorch
