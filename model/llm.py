@@ -10,8 +10,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 def build_language_model(model_name: str = "google/gemma-7b-it", quantize: str = "8bit") -> tuple[AutoModelForCausalLM, AutoTokenizer]:
     # If bitsandbytes is not installed, quantization is not possible.
-    if find_spec("bitsandbytes") is None:
-        quantize = None
+    quantize = None if find_spec("bitsandbytes") is None else quantize
 
     if quantize is None:
         quantization_config = None
@@ -27,13 +26,16 @@ def build_language_model(model_name: str = "google/gemma-7b-it", quantize: str =
     else:
         raise ValueError("Invalid quantization type. Choose between 'None', '4bit', and '8bit'.")
 
+    # Use Flash Attention if it is installed
+    attn_implementation = None if find_spec("flash_attn") is None else "flash_attention_2"
+
     model = AutoModelForCausalLM.from_pretrained(
         model_name, 
         device_map="auto",
         low_cpu_mem_usage=True,
         quantization_config=quantization_config,
         torch_dtype=torch.bfloat16,
-        attn_implementation="flash_attention_2",
+        attn_implementation=attn_implementation,
     )
 
     tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left")
