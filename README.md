@@ -4,11 +4,11 @@ Conversational Recommender System
 
 ![Results](resources/crecs.jpeg)
 
-## Setup
+## Install 
 
-The steps to prepare the environment, download the data, and install the app packages are outlined below.
+The steps to prepare the environment are outlined below.
 
-### Install Dependencies
+### x86-64 Based Systems
 
 1. Create an environment:
 ```bash
@@ -25,14 +25,39 @@ conda activate crecs
 ```bash
 pip install git+https://github.com/huggingface/transformers.git
 ```
+> **_NOTE:_**  If you experience issues with `numpy`, try installing it separately using `mamba install -y "numpy==1.26.4"`
 
+### aarch64 Based Systems
 
-Note: If you experience issues with `numpy`, try installing it separately:
+1. Create an environment:
 ```bash
-mamba install -y "numpy==1.26.4"
+mamba env create -f environments/tacc.yaml
 ```
 
-### Download Data
+2. Activate the environment:
+```bash
+conda activate crecs 
+```
+
+3. Install `torch`:
+```bash
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+```
+
+4. Build `flash-attn`:
+```bash
+MAX_JOBS=10 python -m pip -v install flash-attn --no-build-isolation
+```
+
+<!-- TODO: Remove after next transformers release includes answerdotai/ModernBERT-base -->
+5. Install `transformers` from main:
+```bash
+pip install git+https://github.com/huggingface/transformers.git
+```
+
+## Data
+
+This repository uses [MovieLens](https://grouplens.org/datasets/movielens/), a dataset of movie ratings.
 
 1. Download MovieLens 20M:
 ```bash
@@ -44,19 +69,9 @@ bash download_data.sh
 python preprocess.py
 ```
 
-### Install App Packages
+## Training
 
-1. Install the required packages for the app frontend:
-```bash
-cd app/frontend
-npm install
-``` 
-
-## Usage
-
-The steps to train the recommendation system and run the app are outlined below.
-
-### Training
+The steps to train the recommendation system are outlined below.
 
 1. Ensure you have access to all of the LLM's used in `simulate_requests.py`, and that you are logged into huggingface:
 ```bash
@@ -67,6 +82,8 @@ huggingface-cli login
 ```bash
 wandb login
 ```
+
+### Collaborative Filtering
 
 To jointly train the encoder and recommender using collaborative filtering:
 
@@ -80,6 +97,8 @@ python simulate_requests.py
 python train_collaborative.py
 ```
 
+### Content-Based Filtering
+
 To train the encoder using content filtering:
 
 1. Generate item descriptions:
@@ -92,18 +111,21 @@ python generate_descriptions.py
 python train_content.py
 ```
 
-### App
+## App
 
-1. Start the backend:
+1. Install the required packages for the app frontend:
+```bash
+cd app/frontend
+npm install
+``` 
+
+2. Start the backend:
 ```bash
 python app/backend/app.py
 ```
 
-2. In a seperate terminal, start the frontend:
+3. In a seperate terminal, start the frontend:
 ```bash
 cd app/frontend
 npm start
 ```
-
-# Dataset
-This repository uses [MovieLens](https://grouplens.org/datasets/movielens/), a dataset of movie ratings.
