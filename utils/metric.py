@@ -1,7 +1,7 @@
-from typing import Dict, Tuple, Union
+from typing import Dict, Tuple
 
 import torch
-from sklearn.metrics import average_precision_score, recall_score
+from sklearn.metrics import accuracy_score, average_precision_score, recall_score
 from torch import Tensor
 
 from utils.misc import pairwise_cosine_distance
@@ -18,6 +18,7 @@ def get_reid_metrics(queries: Tuple[Tensor, Tensor], gallery: Tuple[Tensor, Tens
 
     # Ignore any queries with no matches
     valid_mask = pairwise_matches.any(dim=-1)
+    assert valid_mask.all(), "All queries should have at least one match"
     num_valid_queries = valid_mask.sum().item()
     pairwise_distances = pairwise_distances[valid_mask]
     pairwise_matches = pairwise_matches[valid_mask]
@@ -43,16 +44,14 @@ def get_reid_metrics(queries: Tuple[Tensor, Tensor], gallery: Tuple[Tensor, Tens
         "rank-10": cmc_curve[9].item(),
     }
 
-def get_id_metrics(prediction_logits: Tensor, target_ids: Tensor) -> Dict[str, float]:
-    prediction_id_probabilities = prediction_logits.softmax(dim=-1)
+def get_id_metrics(predictions: Tensor, target_ids: Tensor) -> Dict[str, float]:
+    prediction_scores, prediction_ids = predictions[:, 0], predictions[:, 1].int()
 
-    prediction_id_scores, prediction_id_labels = prediction_id_probabilities.max(dim=-1)
+    id_accuracy = accuracy_score(target_ids.cpu(), prediction_ids.cpu())
 
-    id_accuracy = (prediction_id_labels == target_ids).float().mean().item()
+    id_ap = average_precision_score(target_ids.cpu().view(-1, 1), prediction_scores.cpu().view(-1, 1))
 
-    id_ap = average_precision_score(target_ids.cpu().view(-1, 1), prediction_id_scores.cpu().view(-1, 1))
-
-    id_recall = recall_score(target_ids.cpu(), prediction_id_labels.cpu(), average="micro")
+    id_recall = recall_score(target_ids.cpu(), prediction_ids.cpu(), average="micro")
 
     return {
         "id_accuracy": id_accuracy,

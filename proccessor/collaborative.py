@@ -10,7 +10,7 @@ import wandb
 from model.crecs import CRECS
 from utils.loss import CollaborativeCriterion
 from utils.metric import get_id_metrics, get_reid_metrics
-from utils.misc import get_model_statistics, send_to_device
+from utils.misc import get_model_statistics, pairwise_cosine_distance, send_to_device
 
 
 def train_one_epoch(
@@ -68,43 +68,58 @@ def evaluate(
 
     losses = {}
 
-    request_embeddings = []
-    request_logits = []
-    request_ids = []
+    predictions = []
+    target_ids = []
+
+    metrics = {}
+    num_samples = 0
+
+    gallery_embeddings = model.recommender.embedding.item_embedding.weight
+    gallery_ids = torch.arange(len(gallery_embeddings)).to(device)
 
     data = tqdm(dataloader, desc=f"Validation (Epoch {epoch})") if verbose else dataloader
     with torch.no_grad():
         for rec_features, rec_targets, anchors, negative_ids in data:
+            # Send batch to the device
             anchor_requests, anchor_ids = anchors 
 
             rec_features, rec_targets = send_to_device(rec_features, device), send_to_device(rec_targets, device)
             anchor_ids, negative_ids = send_to_device(anchor_ids, device), send_to_device(negative_ids, device)
-
+            
+            # Forward pass
             rec_predictions, anchor, positive, negative = model(rec_features, anchor_requests, anchor_ids, negative_ids)
 
+            # Compute losses
             batch_losses = criterion(rec_predictions, rec_targets, anchor, positive, negative)
 
             losses = {k: losses.get(k, 0) + v.item() for k, v in batch_losses.items()}
 
-            anchor_request_embeddings, anchor_logits, anchor_ids = anchor
+            # Compute reid metrics
+            anchor_embeddings, anchor_logits, anchor_ids = anchor
 
-            request_embeddings.append(anchor_request_embeddings.cpu())
-            request_logits.append(anchor_logits.cpu())
-            request_ids.append(anchor_ids.cpu())
-            
+            reid_metrics = get_reid_metrics((anchor_embeddings, anchor_ids), (gallery_embeddings, gallery_ids), device=device)
+
+            num_samples += (batch_size := len(anchor_ids))
+            metrics = {k: metrics.get(k, 0) + v * batch_size for k, v in reid_metrics.items()}
+
+            # Save id predictions
+            batch_predictions = torch.stack(anchor_logits.softmax(dim=-1).max(dim=-1), dim=-1)
+
+            predictions.append(batch_predictions.cpu()) 
+            target_ids.append(anchor_ids.cpu())
+
+    # Normalize losses and reid metrics
     losses = {k: v / len(dataloader) for k, v in losses.items()}
+
+    metrics = {k: v / num_samples for k, v in metrics.items()}
     
-    request_embeddings = torch.cat(request_embeddings)
-    request_logits = torch.cat(request_logits)
-    request_ids = torch.cat(request_ids)
+    # Calculate id metrics
+    predictions = torch.cat(predictions)
+    target_ids = torch.cat(target_ids)
 
-    item_embeddings = model.recommender.embedding.item_embedding.weight.cpu()
-    item_ids = torch.arange(len(item_embeddings))
+    metrics = {**metrics, **get_id_metrics(predictions, target_ids)}
 
-    reid_metrics = get_reid_metrics((request_embeddings, request_ids), (item_embeddings, item_ids))
-    id_metrics = get_id_metrics(request_logits, request_ids)
-
-    return losses, {**id_metrics, **reid_metrics}
+    return losses, metrics
 
 
 def train(
