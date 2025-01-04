@@ -44,16 +44,12 @@ conda activate crecs
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 ```
 
-4. Build `flash-attn`:
-```bash
-MAX_JOBS=10 python -m pip -v install flash-attn --no-build-isolation
-```
-
 <!-- TODO: Remove after next transformers release includes answerdotai/ModernBERT-base -->
-5. Install `transformers` from main:
+4. Install `transformers` from main:
 ```bash
 pip install git+https://github.com/huggingface/transformers.git
 ```
+
 
 ## Data
 
