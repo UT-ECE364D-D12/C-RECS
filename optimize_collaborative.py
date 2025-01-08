@@ -109,7 +109,7 @@ def objective(trial: optuna.Trial) -> float:
     criterion = CollaborativeCriterion(expander=expander, **args["criterion"])
 
     try:
-        for epoch in tqdm(range(args["train"]["max_epochs"]), desc=f"Trial {trial.number}", unit="epochs"):
+        for epoch in tqdm(range(args["train"]["max_epochs"]), desc=f"Trial {trial.number}", unit="epochs", dynamic_ncols=True):
             train_one_epoch(encoder, classifier, recommender, optimizer, criterion, train_dataloader, epoch, device=device, verbose=False)
 
             test_losses, test_metrics = evaluate(encoder, classifier, recommender, criterion, test_dataloader, epoch, device=device, verbose=False)

@@ -26,7 +26,7 @@ def train_one_epoch(
 
     encoder.train()
 
-    for i, (anchor, positive, negative) in tqdm(enumerate(dataloader), desc=f"Training (Epoch {epoch})", total=len(dataloader)):
+    for i, (anchor, positive, negative) in tqdm(enumerate(dataloader), desc=f"Training (Epoch {epoch})", total=len(dataloader), dynamic_ncols=True):
         anchor_text, anchor_ids = anchor 
         positive_text, positive_ids = positive
         negative_text, negative_ids = negative 
@@ -64,7 +64,7 @@ def get_item_embeddings(
     item_ids = []
 
     with torch.no_grad():
-        for item_ids, descriptions in tqdm(descriptions_dataloader, desc=f"Description Embeddings (Epoch {epoch})"):
+        for item_ids, descriptions in tqdm(descriptions_dataloader, desc=f"Description Embeddings (Epoch {epoch})", dynamic_ncols=True):
             batch_embeddings = encoder(descriptions)
 
             item_embeddings.append(batch_embeddings.cpu())
@@ -93,7 +93,7 @@ def evaluate(
     request_ids = []
 
     with torch.no_grad():
-        for anchor, positive, negative in tqdm(dataloader, desc=f"Evaluation (Epoch {epoch})"):
+        for anchor, positive, negative in tqdm(dataloader, desc=f"Evaluation (Epoch {epoch})", dynamic_ncols=True):
             anchor_text, anchor_ids = anchor 
             positive_text, positive_ids = positive
             negative_text, negative_ids = negative 

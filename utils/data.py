@@ -174,7 +174,7 @@ def simulate(
     data = pd.DataFrame(columns=["item_id", "item_title", output_column_name])
 
     with torch.no_grad():
-        for item_ids, item_titles, prompts in tqdm(dataloader, desc="Simulating", unit="batch"):
+        for item_ids, item_titles, prompts in tqdm(dataloader, desc="Simulating", unit="batch", dynamic_ncols=True):
             # Tokenize input
             batch_input_tokens = tokenizer(prompts, padding=True, return_tensors="pt").to(model.device)
 
