@@ -1,4 +1,4 @@
-name: "ml-20m ModernBERT 8k Users MNRL Better Duplicate Masking"
+name: "ml-20m ModernBERT 8k Users MNRL Duplicate Masking"
 random_seed: 42
 batch_size: 128
 
@@ -7,7 +7,7 @@ model:
     embed_dim: 768
     mlp_dims: [768, 768]
     dropout: 0.5
-    # weights: "weights/recommender/deepfm.pt"
+    weights: "weights/recommender/best.pt"
 
   encoder:
     model_name: "answerdotai/ModernBERT-base"
@@ -60,4 +60,5 @@ optimizer:
 
 train:
   max_epochs: 3
-  accumulation_steps: 1
+  max_grad_norm: NULL
+  grad_accumulation_steps: 1

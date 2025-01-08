@@ -103,24 +103,26 @@ class EncoderCriterion(Criterion):
         # For every anchor, we compute the similarity to all of the gallery items
         similarities = pairwise_cosine_similarity(anchor_embeddings, gallery) * self.triplet_scale
 
+        # The positive for the ith anchor is the ith candidate, so the label for anchors[i] is i
+        target_labels = torch.arange((batch_size := len(anchor_ids)), device=(device := similarities.device))
+
         # Create a mask to ignore duplicate pairs
-        expanded_anchor_ids = anchor_ids.unsqueeze(1).expand(-1, 2 * (batch_size := len(anchor_ids)))
+        expanded_anchor_ids = anchor_ids.unsqueeze(1).expand(-1, 2 * batch_size)
         expanded_gallery_ids = gallery_ids.unsqueeze(0).expand(batch_size, -1)
-        diagonal_mask = torch.eye(2 * batch_size, dtype=torch.bool, device=(device := similarities.device))
+        diagonal_mask = torch.eye(2 * batch_size, dtype=torch.bool, device=device)
         valid_mask = (expanded_anchor_ids != expanded_gallery_ids) | diagonal_mask[:batch_size]
 
-        # The positive for the ith anchor is the ith candidates, so the label for anchors[i] is i
-        target_labels = torch.cat([torch.where(expanded_gallery_ids[i][valid_mask[i]] == anchor_ids[i])[0] for i in range(batch_size)])
-
-        return torch.stack([F.cross_entropy(similarities[i][valid_mask[i]], target_labels[i]) for i in range(batch_size)]).mean()
+        return masked_cross_entropy_loss(similarities, target_labels, valid_mask)
 
     def _get_focal_loss(self, prediction_logits: Tensor, target_labels: Tensor) -> Tensor:
         """
         Returns the focal loss. Similar to cross-entropy loss but with a focus on hard examples.
         """
-        prediction_probabilities = prediction_logits.softmax(dim=-1).clamp_min(1e-6)
+        prediction_probabilities = prediction_logits.softmax(dim=-1)
 
-        loss_ce = F.nll_loss(torch.log(prediction_probabilities), target_labels, reduction="none")
+        log_probabilities = torch.log(prediction_probabilities.clamp_min(1e-7))
+
+        loss_ce = F.nll_loss(log_probabilities, target_labels, reduction="none")
 
         probability_target = prediction_probabilities[torch.arange(len(prediction_probabilities)), target_labels]
 
@@ -187,3 +189,24 @@ class CollaborativeCriterion(Criterion):
         losses["overall"] = sum(losses[loss_name] * self.loss_weights.get(loss_name, 1) for loss_name in losses)
 
         return losses
+
+
+def masked_cross_entropy_loss(logits: Tensor, targets: Tensor, valid_mask: Tensor) -> Tensor:
+    """
+    Returns the cross-entropy loss of the input while ignoring masked-out logits.
+    """
+    # Mask out invalid logits so they don't affect the maximum value
+    logits = logits.masked_fill(~valid_mask, -1e9)
+
+    # Subtract the maximum value for numerical stability
+    logits = logits - logits.max(dim=-1, keepdim=True).values 
+    
+    # Softmax
+    exp_logits = torch.exp(logits) * valid_mask
+
+    probs = exp_logits / (exp_logits.sum(dim=-1, keepdim=True))
+
+    # Negative log-likelihood of the targets
+    log_probs = torch.log(probs.clamp_min(1e-7))
+
+    return F.nll_loss(log_probs, targets)
