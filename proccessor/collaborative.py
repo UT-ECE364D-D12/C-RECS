@@ -150,6 +150,6 @@ def train(
 
         torch.save(model.state_dict(), os.path.join(output_dir, "last.pt"))
 
-        if (test_metrics["reid_map"] < best_metric):
+        if (test_metrics["reid_map"] > best_metric):
             best_metric = test_metrics["reid_map"]
             torch.save(model.state_dict(), os.path.join(output_dir, "best.pt"))
