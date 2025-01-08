@@ -1,3 +1,4 @@
+import os
 from typing import Dict, Tuple
 
 import torch
@@ -10,7 +11,7 @@ import wandb
 from model.crecs import CRECS
 from utils.loss import CollaborativeCriterion
 from utils.metric import get_id_metrics, get_reid_metrics
-from utils.misc import get_model_statistics, pairwise_cosine_distance, send_to_device
+from utils.misc import get_model_statistics, send_to_device
 
 
 def train_one_epoch(
@@ -19,8 +20,8 @@ def train_one_epoch(
     criterion: CollaborativeCriterion,
     dataloader: DataLoader,
     epoch: int,
-    max_norm: float = 5.0,
-    accumulation_steps: int = 1,
+    max_grad_norm: float = None,
+    grad_accumulation_steps: int = 1,
     device: str = "cpu",
     verbose: bool = True,
 ) -> None:
@@ -28,7 +29,7 @@ def train_one_epoch(
 
     model.train()
 
-    data = tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Training (Epoch {epoch})") if verbose else enumerate(dataloader)
+    data = tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Training (Epoch {epoch})", dynamic_ncols=True) if verbose else enumerate(dataloader)
     for i, (rec_features, rec_targets, anchors, negative_ids) in data:
         anchor_requests, anchor_ids = anchors 
 
@@ -46,13 +47,12 @@ def train_one_epoch(
         loss.backward()
 
         if verbose:
-            model_statistics = {module: get_model_statistics(model.__getattr__(module.lower()))
-                               for module in ["Encoder", "Recommender", "Classifier"]}
+            model_statistics = {module: get_model_statistics(model.__getattr__(module.lower())) for module in ["Encoder", "Recommender", "Classifier"]}
 
             wandb.log({"Train": {"Loss": batch_losses}, **model_statistics}, step=wandb.run.step + len(anchor_requests))
 
-        if (i + 1) % accumulation_steps == 0:
-            # clip_grad_norm_(model.parameters(), max_norm=max_norm)
+        if (i + 1) % grad_accumulation_steps == 0:
+            if max_grad_norm: clip_grad_norm_(model.parameters(), max_norm=max_grad_norm)
             optimizer.step()
             optimizer.zero_grad()
 
@@ -77,7 +77,7 @@ def evaluate(
     gallery_embeddings = model.recommender.embedding.item_embedding.weight
     gallery_ids = torch.arange(len(gallery_embeddings)).to(device)
 
-    data = tqdm(dataloader, desc=f"Validation (Epoch {epoch})") if verbose else dataloader
+    data = tqdm(dataloader, desc=f"Validation (Epoch {epoch})", dynamic_ncols=True) if verbose else dataloader
     with torch.no_grad():
         for rec_features, rec_targets, anchors, negative_ids in data:
             # Send batch to the device
@@ -130,15 +130,26 @@ def train(
     train_subset_dataloader: DataLoader,
     test_dataloader: DataLoader,
     max_epochs: int,
-    max_norm: float = 5.0,
-    accumulation_steps: int = 1,
+    max_grad_norm: float = 10.0,
+    grad_accumulation_steps: int = 1,
+    output_dir: str = "weights/collaborative",
     **kwargs
 ) -> None:
+    os.makedirs(output_dir, exist_ok=True)
+
+    best_metric = float("-inf")
+
     for epoch in range(max_epochs):
-        train_one_epoch(model, optimizer, criterion, train_dataloader, epoch, max_norm, accumulation_steps, **kwargs)
+        train_one_epoch(model, optimizer, criterion, train_dataloader, epoch, max_grad_norm, grad_accumulation_steps, **kwargs)
 
         _, train_metrics = evaluate(model, criterion, train_subset_dataloader, epoch, **kwargs)
 
         test_losses, test_metrics = evaluate(model, criterion, test_dataloader, epoch, **kwargs)
 
         wandb.log({"Train": {"Metric": train_metrics}, "Validation": {"Loss": test_losses, "Metric": test_metrics}}, step=wandb.run.step)
+
+        torch.save(model.state_dict(), os.path.join(output_dir, "last.pt"))
+
+        if (test_metrics["reid_map"] < best_metric):
+            best_metric = test_metrics["reid_map"]
+            torch.save(model.state_dict(), os.path.join(output_dir, "best.pt"))

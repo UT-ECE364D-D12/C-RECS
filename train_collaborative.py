@@ -101,6 +101,3 @@ train(
 )
 
 wandb.finish()
-
-os.makedirs("weights/collaborative", exist_ok=True)
-torch.save(model.state_dict(), "weights/collaborative/crecs.pt")
