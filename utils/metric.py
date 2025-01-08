@@ -16,12 +16,7 @@ def get_reid_metrics(queries: Tuple[Tensor, Tensor], gallery: Tuple[Tensor, Tens
     pairwise_distances = pairwise_cosine_distance(query_embeddings, gallery_embeddings)
     pairwise_matches = query_ids.unsqueeze(1) == gallery_ids.unsqueeze(0)
 
-    # Ignore any queries with no matches
-    valid_mask = pairwise_matches.any(dim=-1)
-    assert valid_mask.all(), "All queries should have at least one match"
-    num_valid_queries = valid_mask.sum().item()
-    pairwise_distances = pairwise_distances[valid_mask]
-    pairwise_matches = pairwise_matches[valid_mask]
+    assert pairwise_matches.any(dim=-1).all(), "All queries should have at least one match"
 
     # Sort vectors from closest to farthest
     pairwise_distances, indices = torch.sort(pairwise_distances, dim=-1)
@@ -35,7 +30,7 @@ def get_reid_metrics(queries: Tuple[Tensor, Tensor], gallery: Tuple[Tensor, Tens
 
     # Calculate the Cumulative Matching Characteristics (CMC) curve
     cumulative_sum[cumulative_sum > 1] = 1
-    cmc_curve = cumulative_sum.sum(dim=0) / num_valid_queries
+    cmc_curve = cumulative_sum.mean(dim=0, dtype=torch.float32)
 
     return {
         "reid_map": reid_map.item(),
