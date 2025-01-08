@@ -64,32 +64,37 @@ def get_model_statistics(model: nn.Module, norm_type: int = 2) -> dict:
 
     num_params = 0
     num_active_params = 0
-    parameter_abs = 0.0
+    parameter_mean = 0.0
+    parameter_max = 0.0
     parameter_norm = 0.0
-    gradient_abs = 0.0
+    gradient_mean = 0.0
+    gradient_max = 0.0
     gradient_norm = 0.0
 
     for param in model.parameters():
         # Parameter stats
-        parameter_abs += param.detach().data.abs().sum().item()
+        parameter_mean += param.detach().data.abs().sum().item()
+        parameter_max = max(parameter_max, param.detach().data.abs().max().item())
         parameter_norm += param.detach().data.norm(norm_type).item() ** norm_type
 
         num_params += param.numel()
 
         # Gradient stats
         if param.grad is not None and param.requires_grad:
-            gradient_abs += param.grad.detach().data.abs().sum().item()
+            gradient_mean += param.grad.detach().data.abs().sum().item()
+            gradient_max = max(gradient_max, param.grad.detach().data.abs().max().item())
             gradient_norm += param.grad.detach().data.norm(norm_type).item() ** norm_type
-
             num_active_params += param.numel()
 
     return {
         "Parameter": {
-            "Abs": parameter_abs / num_params,
             "Norm": parameter_norm ** (1.0 / norm_type),
+            "Mean": parameter_mean / num_params,
+            "Max": parameter_max,
         },
         "Gradient": {
-            "Abs": gradient_abs / num_active_params,
             "Norm": gradient_norm ** (1.0 / norm_type),
+            "Mean": gradient_mean / num_active_params,
+            "Max": gradient_max,
         }
     }
