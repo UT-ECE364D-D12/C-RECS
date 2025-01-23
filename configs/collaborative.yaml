@@ -1,4 +1,4 @@
-name: "ml-20m ModernBERT 8k Users Smaller Weight Decay Kaimig Init"
+name: "ml-20m ModernBERT 8k Users MNRL Duplicate Masking"
 random_seed: 42
 batch_size: 128
 
@@ -7,13 +7,13 @@ model:
     embed_dim: 768
     mlp_dims: [768, 768]
     dropout: 0.5
-    # weights: "weights/recommender/deepfm.pt"
+    weights: "weights/recommender/best.pt"
 
   encoder:
     model_name: "answerdotai/ModernBERT-base"
-    embedding_dropout: 0.1
-    mlp_dropout: 0.1
-    attention_dropout: 0.1
+    embedding_dropout: 0.2
+    mlp_dropout: 0.2
+    attention_dropout: 0.2
     weights: NULL
 
 
@@ -27,7 +27,8 @@ expander:
   dropout: 0.5
 
 criterion:
-  triplet_margin: 1.2
+  triplet_scale: 20
+  # triplet_margin: 1.2
   focal_gamma: 0.75
   vicreg_gamma: 1.0
   loss_weights:
@@ -58,5 +59,6 @@ optimizer:
     weight_decay: 0.1
 
 train:
-  max_epochs: 4
-  accumulation_steps: 1
+  max_epochs: 3
+  max_grad_norm: NULL
+  grad_accumulation_steps: 1

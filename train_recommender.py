@@ -24,7 +24,7 @@ train_ratings, test_ratings = train_test_split_ratings(ratings, train_size=0.8)
 
 train_dataset, test_dataset = RatingsDataset(train_ratings), RatingsDataset(test_ratings)
 
-train_dataloader, test_dataloader = DataLoader(train_dataset, collate_fn=ratings_collate_fn, batch_size=args["batch_size"], shuffle=True, num_workers=12), DataLoader(test_dataset, collate_fn=ratings_collate_fn, batch_size=args["batch_size"], num_workers=12)
+train_dataloader, test_dataloader = DataLoader(train_dataset, collate_fn=ratings_collate_fn, batch_size=args["batch_size"], shuffle=True, num_workers=6), DataLoader(test_dataset, collate_fn=ratings_collate_fn, batch_size=args["batch_size"], num_workers=6)
 
 model = DeepFM(num_items=ratings["item_id"].nunique(), **args["recommender"]).to(device)
 
@@ -45,6 +45,3 @@ train(
 )
 
 wandb.finish()
-
-os.makedirs("weights/recommender", exist_ok=True)
-torch.save(model.state_dict(), "weights/recommender/deepfm.pt")

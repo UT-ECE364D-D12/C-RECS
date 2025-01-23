@@ -1,3 +1,4 @@
+import os
 from typing import Dict, Tuple
 
 import torch
@@ -23,7 +24,7 @@ def train_one_epoch(
 
     model.train()
 
-    for features, targets in tqdm(dataloader, desc=f"Training (Epoch {epoch})"):
+    for features, targets in tqdm(dataloader, desc=f"Training (Epoch {epoch})", dynamic_ncols=True):
         optimizer.zero_grad()
 
         features, targets = send_to_device(features, device), send_to_device(targets, device)
@@ -53,7 +54,7 @@ def evaluate(
     model.eval()
 
     with torch.no_grad():
-        for features, targets in tqdm(dataloader, desc=f"Validation (Epoch {epoch})"):
+        for features, targets in tqdm(dataloader, desc=f"Validation (Epoch {epoch})", dynamic_ncols=True):
             features, targets = send_to_device(features, device), send_to_device(targets, device)
 
             predictions = model(features)
@@ -74,10 +75,22 @@ def train(
     test_dataloader: DataLoader,
     max_epochs: int,
     device: str = "cpu",
+    output_dir: str = "weights/recommender",
 ) -> None:
+    os.makedirs(output_dir, exist_ok=True)
+
+    best_loss = float("inf")
+    
     for epoch in range(max_epochs):
         train_one_epoch(model, optimizer, criterion, train_dataloader, epoch, device)
-        
+
+        # TODO: There is something weird going on with evaluation - GPU memory shoots up masssively and I intermittently get segfaults. 
         test_losses = evaluate(model, criterion, test_dataloader, epoch, device)
 
         wandb.log({"Validation": {"Loss": test_losses}}, step=wandb.run.step)
+
+        torch.save(model.state_dict(), os.path.join(output_dir, "last.pt"))
+
+        if (test_losses["overall"] < best_loss):
+            best_loss = test_losses["overall"]
+            torch.save(model.state_dict(), os.path.join(output_dir, "best.pt"))
