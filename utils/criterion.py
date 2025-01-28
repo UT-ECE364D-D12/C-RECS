@@ -1,4 +1,4 @@
-from typing import Dict, Tuple, Union
+from typing import Dict, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -6,23 +6,26 @@ from torch import Tensor, nn
 from torchmetrics.functional import pairwise_cosine_similarity
 
 from model.layers import MultiLayerPerceptron
+from utils.misc import take_annotation_from
 
 
 class Criterion(nn.Module):
     def __init__(self) -> None:
         super().__init__()
-    
+
     def forward(self, *args) -> Dict[str, Tensor]:
         raise NotImplementedError
-    
-    def __call__(self, *args) -> Dict[str, Tensor]:
-        return super().__call__(*args)
+
+    @take_annotation_from(forward)
+    def __call__(self, *args, **kwargs) -> Dict[str, Tensor]:
+        return nn.Module.__call__(self, *args, **kwargs)
 
     def _check_for_nans(self, losses: Dict[str, Tensor]) -> None:
         nan_losses = [name for name, loss in losses.items() if torch.isnan(loss).any()]
 
         if nan_losses:
             raise ValueError(f"NaNs detected in losses: {nan_losses}")
+
 
 class RecommenderCriterion(Criterion):
     def __init__(self, loss_weights: Dict[str, float] = {}) -> None:
@@ -38,9 +41,18 @@ class RecommenderCriterion(Criterion):
         losses["overall"] = sum(losses[loss_name] * self.loss_weights.get(loss_name, 1) for loss_name in losses)
 
         return losses
-    
+
+
 class EncoderCriterion(Criterion):
-    def __init__(self, expander: MultiLayerPerceptron, loss_weights: Dict[str, float] = {}, triplet_margin: float = 1.0, triplet_scale: float = 20.0, focal_gamma: float = 0.0, vicreg_gamma: float = 1.0) -> None:
+    def __init__(
+        self,
+        expander: MultiLayerPerceptron,
+        loss_weights: Dict[str, float] = {},
+        triplet_margin: float = 1.0,
+        triplet_scale: float = 20.0,
+        focal_gamma: float = 0.0,
+        vicreg_gamma: float = 1.0,
+    ) -> None:
         super().__init__()
 
         self.expander = expander
@@ -49,44 +61,73 @@ class EncoderCriterion(Criterion):
         self.focal_gamma = focal_gamma
         self.vicreg_gamma = vicreg_gamma
         self.loss_weights = loss_weights
-    
-    def forward(self, anchor: Tuple[Tensor, Tensor, Tensor], positive: Tuple[Tensor, Tensor, Tensor], negative: Tuple[Tensor, Tensor, Tensor]) -> Dict[str, Tensor]:
+
+    def forward(
+        self,
+        anchor: Tuple[Tensor, Tensor, Tensor],
+        positive: Tuple[Tensor, Tensor, Tensor],
+        negative: Tuple[Tensor, Tensor, Tensor]
+    ) -> Dict[str, Tensor]:
         anchor_embeddings, anchor_logits, anchor_ids = anchor
         positive_embeddings, positive_logits, positive_ids = positive
         negative_embeddings, negative_logits, negative_ids = negative
 
-        anchor_ids, positive_ids, negative_ids = anchor_ids.to(device := anchor_embeddings.device), positive_ids.to(device), negative_ids.to(device)
+        anchor_ids, positive_ids, negative_ids = (
+            anchor_ids.to(device := anchor_embeddings.device),
+            positive_ids.to(device),
+            negative_ids.to(device),
+        )
 
         if torch.isnan(torch.stack([anchor_embeddings, positive_embeddings, negative_embeddings])).any():
             raise ValueError("NaNs detected in embeddings")
 
         if torch.isnan(torch.stack([anchor_logits, positive_logits, negative_logits])).any():
             raise ValueError("NaNs detected in logits")
-        
-        triplet_loss = self._get_triplet_loss((anchor_embeddings, anchor_ids), (positive_embeddings, positive_ids), (negative_embeddings, negative_ids))
 
-        id_loss = (self._get_focal_loss(anchor_logits, anchor_ids) + self._get_focal_loss(positive_logits, positive_ids) + self._get_focal_loss(negative_logits, negative_ids)) / 3
+        triplet_loss = self._get_triplet_loss(
+            (anchor_embeddings, anchor_ids),
+            (positive_embeddings, positive_ids),
+            (negative_embeddings, negative_ids)
+        )
 
-        anchor_embeddings, positive_embeddings, negative_embeddings = self.expander(anchor_embeddings), self.expander(positive_embeddings), self.expander(negative_embeddings)
+        id_loss = (
+            self._get_focal_loss(anchor_logits, anchor_ids)
+            + self._get_focal_loss(positive_logits, positive_ids)
+            + self._get_focal_loss(negative_logits, negative_ids)
+        ) / 3
 
-        variance_loss = (self._get_variance_loss(anchor_embeddings) + self._get_variance_loss(positive_embeddings) + self._get_variance_loss(negative_embeddings)) / 3
+        anchor_embeddings, positive_embeddings, negative_embeddings = (
+            self.expander(anchor_embeddings),
+            self.expander(positive_embeddings),
+            self.expander(negative_embeddings),
+        )
+
+        variance_loss = (
+            self._get_variance_loss(anchor_embeddings)
+            + self._get_variance_loss(positive_embeddings)
+            + self._get_variance_loss(negative_embeddings)
+        ) / 3
 
         invariance_loss = self._get_invariance_loss(anchor_embeddings, positive_embeddings)
 
-        covariance_loss = (self._get_covariance_loss(anchor_embeddings) + self._get_covariance_loss(positive_embeddings) + self._get_covariance_loss(negative_embeddings)) / 3
+        covariance_loss = (
+            self._get_covariance_loss(anchor_embeddings)
+            + self._get_covariance_loss(positive_embeddings)
+            + self._get_covariance_loss(negative_embeddings)
+        ) / 3
 
         losses = {
             "triplet": triplet_loss,
             "id": id_loss,
             "variance": variance_loss,
             "invariance": invariance_loss,
-            "covariance": covariance_loss
+            "covariance": covariance_loss,
         }
 
         losses["overall"] = sum(losses[loss_name] * self.loss_weights.get(loss_name, 1) for loss_name in losses)
 
         return losses
-    
+
     def _get_triplet_loss(self, anchor: Tuple[Tensor, Tensor], positive: Tuple[Tensor, Tensor], negative: Tuple[Tensor, Tensor]) -> Tensor:
         """
         Returns the triplet loss. Pulls the anchor and positive closer while pushing the negative away.
@@ -97,7 +138,7 @@ class EncoderCriterion(Criterion):
         negative_embeddings, negative_ids = negative
 
         # Create the gallery (positives and negatives)
-        gallery = torch.cat([positive_embeddings, negative_embeddings], dim=0) 
+        gallery = torch.cat([positive_embeddings, negative_embeddings], dim=0)
         gallery_ids = torch.cat([positive_ids, negative_ids], dim=0)
 
         # For every anchor, we compute the similarity to all of the gallery items
@@ -131,8 +172,8 @@ class EncoderCriterion(Criterion):
         focal_loss = (focal_term * loss_ce).mean()
 
         return focal_loss
-    
-    def _get_variance_loss(self, x: Tensor) -> Tensor:     
+
+    def _get_variance_loss(self, x: Tensor) -> Tensor:
         """
         Returns the variance loss. Pushes the embeddings to have high variance across the batch dimension.
         """
@@ -143,13 +184,13 @@ class EncoderCriterion(Criterion):
         var_loss = F.relu(self.vicreg_gamma - std).mean()
 
         return var_loss
-    
+
     def _get_invariance_loss(self, anchor: Tensor, positive: Tensor) -> Tensor:
         """
         Returns the invariance loss. Forces the representations of the same object to be similar.
         """
         return F.mse_loss(anchor, positive)
-    
+
     def _get_covariance_loss(self, x: Tensor) -> Tensor:
         """
         Returns the covariance loss. Decorrelate the embeddings' dimensions, pushing the model to capture more information per dimension.
@@ -162,10 +203,12 @@ class EncoderCriterion(Criterion):
 
         return cov_loss
 
+
 class CollaborativeCriterion(Criterion):
     """
     A joint criterion that combines the recommender and encoder criteria, used during collaborative training.
     """
+
     def __init__(self, loss_weights: Dict[str, float] = {}, **kwargs) -> None:
         super().__init__()
 
@@ -175,7 +218,14 @@ class CollaborativeCriterion(Criterion):
 
         self.encoder_criterion = EncoderCriterion(**kwargs)
 
-    def forward(self, rec_predictions: Tensor, rec_targets: Tensor, anchor: Tuple[Tensor, Tensor, Tensor], positive: Tuple[Tensor, Tensor, Tensor], negative: Tuple[Tensor, Tensor, Tensor]) -> Dict[str, Tensor]:
+    def forward(
+        self,
+        rec_predictions: Tensor,
+        rec_targets: Tensor,
+        anchor: Tuple[Tensor, Tensor, Tensor],
+        positive: Tuple[Tensor, Tensor, Tensor],
+        negative: Tuple[Tensor, Tensor, Tensor],
+    ) -> Dict[str, Tensor]:
         recommender_losses = self.recommender_criterion(rec_predictions, rec_targets)
         del recommender_losses["overall"]
 
@@ -199,8 +249,8 @@ def masked_cross_entropy_loss(logits: Tensor, targets: Tensor, valid_mask: Tenso
     logits = logits.masked_fill(~valid_mask, -1e9)
 
     # Subtract the maximum value for numerical stability
-    logits = logits - logits.max(dim=-1, keepdim=True).values 
-    
+    logits = logits - logits.max(dim=-1, keepdim=True).values
+
     # Softmax
     exp_logits = torch.exp(logits) * valid_mask
 
