@@ -9,10 +9,19 @@ from model.layers import FactorizationMachine, FeaturesEmbedding, FeaturesLinear
 
 class DeepFM(nn.Module):
     """
-    A pytorch implementation of DeepFM.
+    Deep Factorization Machine.
+
     Reference: H Guo, et al. DeepFM: A Factorization-Machine based Neural Network for CTR Prediction, 2017.
+
+    Args:
+        num_items (int): Number of items.
+        embed_dim (int): Dimension of the embeddings.
+        mlp_dims (List[int]): Dimensions of the MLP layers.
+        dropout (float): Dropout rate, optional.
+        weights (str): Path to the model weights, optional.
     """
-    def __init__(self, num_items: int, embed_dim: int, mlp_dims: List[int], dropout: float, weights: str = None):
+
+    def __init__(self, num_items: int, embed_dim: int, mlp_dims: List[int], dropout: float, weights: str = None) -> None:
         super().__init__()
 
         self.num_items = num_items
@@ -27,8 +36,15 @@ class DeepFM(nn.Module):
 
     def forward(self, features: Tuple[List[Tensor], List[Tensor], Tensor]) -> Tensor:
         """
-        :param features: (feature_ids, feature_ratings, item_ids)
+        Predict the item ratings for the given user features, used during training.
+
+        Args:
+            features (Tuple[List[Tensor], List[Tensor], Tensor]): User features, item features, and item IDs.
+        
+        Returns:
+            ratings (Tensor): Predicted ratings.
         """
+
         embeddings = self.embedding(features)
 
         linear_term = self.linear(features)
@@ -40,6 +56,16 @@ class DeepFM(nn.Module):
         return torch.sigmoid(linear_term + fm_term + mlp_term).squeeze(1)
 
     def predict(self, features: Tuple[Tensor, Tensor]) -> Tensor:
+        """
+        Predict the rating of every item for the given user features.
+
+        Args:
+            features (Tuple[Tensor, Tensor]): User features and ratings.
+        
+        Returns:
+            ratings (Tensor): Predicted ratings.
+        """
+
         feature_ids, feature_ratings = features
 
         with torch.no_grad():

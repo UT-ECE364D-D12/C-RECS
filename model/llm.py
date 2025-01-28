@@ -1,7 +1,3 @@
-from utils.misc import suppress_warnings
-
-suppress_warnings()
-
 from importlib.util import find_spec
 
 import torch
@@ -9,6 +5,18 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 
 def build_language_model(model_name: str = "google/gemma-7b-it", quantize: str = "8bit") -> tuple[AutoModelForCausalLM, AutoTokenizer]:
+    """
+    Load, and potentially quantize, a language model.
+
+    Args:
+        model_name (str): Pre-trained model name.
+        quantize (str): Quantization type, optional.
+
+    Returns:
+        model (AutoModelForCausalLM): Language model.
+        tokenizer (AutoTokenizer): Tokenizer.
+    """
+
     # If bitsandbytes is not installed, quantization is not possible.
     quantize = None if find_spec("bitsandbytes") is None else quantize
 
@@ -30,7 +38,7 @@ def build_language_model(model_name: str = "google/gemma-7b-it", quantize: str =
     attn_implementation = None if find_spec("flash_attn") is None else "flash_attention_2"
 
     model = AutoModelForCausalLM.from_pretrained(
-        model_name, 
+        model_name,
         device_map="auto",
         low_cpu_mem_usage=True,
         quantization_config=quantization_config,
@@ -48,5 +56,5 @@ def build_language_model(model_name: str = "google/gemma-7b-it", quantize: str =
         model.config.pad_token_id = tokenizer.eos_token_id
         model.generation_config.pad_token = tokenizer.eos_token
         model.generation_config.pad_token_id = tokenizer.eos_token_id
-        
+
     return model, tokenizer
