@@ -11,7 +11,9 @@ set_random_seed(42)
 
 movies = pd.read_csv("data/ml-20m/movies.csv", header=0, names=["item_id", "item_title", "genres"])
 
-ratings = pd.read_csv("data/ml-20m/ratings.csv", header=0, names=["user_id", "item_id", "rating", "timestamp"]).astype({"user_id": int, "item_id": int, "rating": float, "timestamp": int})
+ratings = pd.read_csv("data/ml-20m/ratings.csv", header=0, names=["user_id", "item_id", "rating", "timestamp"])
+
+ratings = ratings.astype({"user_id": int, "item_id": int, "rating": float, "timestamp": int})
 
 # Remove movies that have no ratings
 movies = movies[movies["item_id"].isin(ratings["item_id"])]
@@ -45,7 +47,7 @@ item_id_to_unique_id = {item_id: i for i, item_id in enumerate(movies["item_id"]
 
 if os.path.exists("data/ml-20m/requests.csv"):
     requests = pd.read_csv("data/ml-20m/requests.csv")
-    
+
     requests = requests[requests["item_id"].isin(movies["item_id"])]
 
     requests["item_id"] = requests["item_id"].map(item_id_to_unique_id)
@@ -72,11 +74,18 @@ ratings.to_csv("data/ml-20m/ratings.csv", index=False)
 
 
 # Process ratings
-grouped_ratings = ratings.sort_values(by=["user_id", 'timestamp']).groupby("user_id").agg({
-    "item_id": list,
-    "rating": list,
-    "timestamp": list,
-}).reset_index()
+grouped_ratings = (
+    ratings.sort_values(by=["user_id", "timestamp"])
+    .groupby("user_id")
+    .agg(
+        {
+            "item_id": list,
+            "rating": list,
+            "timestamp": list,
+        }
+    )
+    .reset_index()
+)
 
 no_item_id = ratings["item_id"].nunique()
 
@@ -87,18 +96,20 @@ for user_id, item_ids, item_ratings, timestamps in grouped_ratings.values:
     feature_ratings = [5.0]
 
     for item_id, rating, timestamp in zip(item_ids, item_ratings, timestamps):
-        processed_ratings.append({
-            "user_id": user_id,
-            "feature_ids": feature_ids.copy(),
-            "feature_ratings": feature_ratings.copy(),
-            "item_id": item_id,
-            "rating": rating,
-            "timestamp": timestamp,
-        })
-        
+        processed_ratings.append(
+            {
+                "user_id": user_id,
+                "feature_ids": feature_ids.copy(),
+                "feature_ratings": feature_ratings.copy(),
+                "item_id": item_id,
+                "rating": rating,
+                "timestamp": timestamp,
+            }
+        )
+
         feature_ids.append(item_id)
         feature_ratings.append(rating)
 
 processed_ratings = pd.DataFrame(processed_ratings)
 
-processed_ratings.to_parquet("data/ml-20m/processed_ratings.parquet", index=False, engine='pyarrow', compression='snappy')
+processed_ratings.to_parquet("data/ml-20m/processed_ratings.parquet", index=False, engine="pyarrow", compression="snappy")

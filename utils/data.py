@@ -11,18 +11,52 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 class RatingsDataset(Dataset):
+    """
+    Dataset for ratings prediction, used to train the recommender system.
+
+    Args:
+        ratings (pd.DataFrame): The ratings dataframe.    
+    """
+
     def __init__(self, ratings: pd.DataFrame) -> None:
         self.ratings = ratings
 
     def __len__(self) -> int:
         return len(self.ratings)
-    
+
     def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+        """
+        Retrieves a ratings sample.
+
+        Args:
+            idx (int): The index of the sample.
+
+        Returns:
+            feature_ids (Tensor): The feature item IDs.
+            feature_ratings (Tensor): The feature item ratings.
+            item_id (Tensor): The target item ID.
+            rating (Tensor): The target item rating.        
+        """
+
         feature_ids, feature_ratings, item_id, rating = self.ratings.iloc[idx][["feature_ids", "feature_ratings", "item_id", "rating"]]
 
-        return torch.tensor(feature_ids, dtype=torch.int64), torch.tensor(feature_ratings, dtype=torch.float32), torch.tensor(item_id, dtype=torch.int64), torch.tensor(rating / 5.0, dtype=torch.float32)
-    
+        return (
+            torch.tensor(feature_ids, dtype=torch.int64),
+            torch.tensor(feature_ratings, dtype=torch.float32),
+            torch.tensor(item_id, dtype=torch.int64),
+            torch.tensor(rating / 5.0, dtype=torch.float32),
+        )
+
+
 class CollaborativeDataset(Dataset):
+    """
+    Dataset for collaborative filtering.
+
+    Args:
+        ratings (pd.DataFrame): The ratings dataframe.
+        requests (pd.DataFrame): The requests dataframe. 
+    """
+
     def __init__(self, ratings: pd.DataFrame, requests: pd.DataFrame) -> None:
         self.ratings = ratings
         self.requests = requests
@@ -34,71 +68,72 @@ class CollaborativeDataset(Dataset):
         return len(self.ratings)
 
     def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tuple[str, Tensor], Tensor]:
+        """
+        Retrieves a collaborative filtering sample.
+
+        Args:
+            idx (int): The index of the sample.
+
+        Returns:
+            feature_ids (Tensor): The feature item IDs.
+            feature_ratings (Tensor): The feature item ratings.
+            item_id (Tensor): The target item ID.
+            rating (Tensor): The target item rating.
+            anchor (Tuple[str, Tensor]): The anchor request and target item ID.
+            negative_item_id (Tensor): The negative item ID.
+        """
+
         feature_ids, feature_ratings, item_id, rating = self.ratings.iloc[idx][["feature_ids", "feature_ratings", "item_id", "rating"]]
 
         anchor_requests = self.requests.loc[item_id]["requests"]
 
         anchor_request = random.choice(anchor_requests)
-        
+
         negative_item_id = random.choice([i for i in self.unique_item_ids if i != item_id])
 
-        return torch.tensor(feature_ids, dtype=torch.int64), torch.tensor(feature_ratings, dtype=torch.float32), torch.tensor(item_id, dtype=torch.int64), torch.tensor(rating / 5.0, dtype=torch.float32), (anchor_request, torch.tensor(item_id, dtype=torch.int64)), torch.tensor(negative_item_id, dtype=torch.int64)
-        
-class ContentDataset(Dataset):
-    def __init__(self, descriptions: pd.DataFrame, requests: pd.DataFrame) -> None:
-        self.descriptions = descriptions
-        self.requests = requests
+        return (
+            torch.tensor(feature_ids, dtype=torch.int64),
+            torch.tensor(feature_ratings, dtype=torch.float32),
+            torch.tensor(item_id, dtype=torch.int64),
+            torch.tensor(rating / 5.0, dtype=torch.float32),
+            (anchor_request, torch.tensor(item_id, dtype=torch.int64)),
+            torch.tensor(negative_item_id, dtype=torch.int64),
+        )
 
-        self.num_movies = len(self.requests)
-        self.num_requests_per_movie = len(self.requests.iloc[0]["requests"])        
 
-    def __len__(self) -> int:
-        return self.num_movies * self.num_requests_per_movie
-
-    def __getitem__(self, idx: int) -> Tuple[Tuple[str, int], Tuple[str, int], Tuple[str, int]]:
-        """
-        Returns an anchor, positive, and negative sample, each containing a description and an item id.
-        """
-        item_idx, request_idx = divmod(idx, self.num_requests_per_movie)
-
-        item_id, anchor_requests = self.requests.iloc[item_idx][["item_id", "requests"]]
-
-        anchor_request = anchor_requests[request_idx]
-
-        positive_description = self.descriptions.loc[item_id]["description"]
-        
-        negative_item_idx = random.choice([i for i in range(self.num_movies) if i != item_idx])
-
-        negative_item_id, negative_description = self.descriptions.iloc[negative_item_idx][["item_id", "description"]]
-
-        return (anchor_request, item_id), (positive_description, item_id), (negative_description, negative_item_id)
-    
-class DescriptionsDataset(Dataset):
-    def __init__(self, descriptions: pd.DataFrame) -> None:
-        self.descriptions = descriptions
-
-        self.num_descriptions = len(self.descriptions)
-
-    def __len__(self) -> int:
-        return self.num_descriptions
-
-    def __getitem__(self, idx: int) -> Tuple[int, str]:
-        item_id, description = self.descriptions.iloc[idx][["item_id", "description"]]
-
-        return item_id, description
-    
 class SimulatorDataset(Dataset):
-    def __init__(self, movies: pd.DataFrame, tokenizer: AutoTokenizer, prompt_generators: List[Callable]) -> None:
-        self.movies = movies
+    """
+    Dataset for the user simulator.
+
+    Args:
+        items (pd.DataFrame): The items dataframe.
+        tokenizer (AutoTokenizer): The tokenizer.
+        prompt_generators (List[Callable]): The prompt generators which generate prompts given a item title.
+    """
+
+    def __init__(self, items: pd.DataFrame, tokenizer: AutoTokenizer, prompt_generators: List[Callable]) -> None:
+        self.items = items
         self.tokenizer = tokenizer
         self.prompt_generators = prompt_generators
 
-    def __len__(self):
-        return len(self.movies) * len(self.prompt_generators)
+    def __len__(self) -> int:
+        return len(self.items) * len(self.prompt_generators)
 
-    def __getitem__(self, idx: int):
-        prompt_idx, item_idx = divmod(idx, len(self.movies))
-        item_id, item_title = self.movies.iloc[item_idx][["item_id", "item_title"]]
+    def __getitem__(self, idx: int) -> Tuple[int, str, str]:
+        """
+        Retrieves an item and associated prompt.
+
+        Args:
+            idx (int): The index of the item.
+        
+        Returns:
+            item_id (int): The item ID.
+            item_title (str): The item title.
+            prompt (str): The prompt.
+        """
+        
+        prompt_idx, item_idx = divmod(idx, len(self.items))
+        item_id, item_title = self.items.iloc[item_idx][["item_id", "item_title"]]
 
         # Generate the prompt for the movie
         prompt = self.prompt_generators[prompt_idx](item_title)
@@ -110,30 +145,77 @@ class SimulatorDataset(Dataset):
         prompt = self.tokenizer.apply_chat_template(chat, tokenize=False, add_generation_prompt=True)
 
         return item_id, item_title, prompt
-    
+
+
 def ratings_collate_fn(batch: List[Tuple[Tensor, Tensor, Tensor, Tensor]]) -> Tuple[Tuple[List[Tensor], List[Tensor], Tensor], Tensor]:
+    """
+    Collates a batch of ratings data.
+
+    Args:
+        batch (List[Tuple[Tensor, Tensor, Tensor, Tensor]]): The batch of data.
+
+    Returns:
+        rec_features (Tuple[List[Tensor], List[Tensor], Tensor]): User and item features.
+        rec_targets (Tensor): Target ratings
+    """
     feature_ids, feature_ratings, target_ids, target_ratings = zip(*batch)
 
-    return (feature_ids, feature_ratings, torch.stack(target_ids)), torch.stack(target_ratings)
+    rec_features = (feature_ids, feature_ratings, torch.stack(target_ids))
+    rec_targets = torch.stack(target_ratings)
 
-def collaborative_collate_fn(batch: List[Tuple[Tensor, Tensor, Tensor, Tensor, Tuple[str, int], int]]) -> Tuple[Tuple[List[Tensor], List[Tensor], Tensor], Tensor, Tuple[str, Tensor], Tensor]:
+    return rec_features, rec_targets
+
+
+def collaborative_collate_fn(
+    batch: List[Tuple[Tensor, Tensor, Tensor, Tensor, Tuple[str, int], int]]
+) -> Tuple[Tuple[List[Tensor], List[Tensor], Tensor], Tensor, Tuple[str, Tensor], Tensor]:
+    """
+    Collates a batch of collaborative data.
+
+    Args:
+        batch (List[Tuple[Tensor, Tensor, Tensor, Tensor, Tuple[str, int], int]]): The batch of data.
+
+    Returns:
+        rec_features (Tuple[List[Tensor], List[Tensor], Tensor]): User and item features.
+        rec_targets (Tensor): Target ratings.
+        anchors (Tuple[str, Tensor]): Anchor request and item ID.
+        negative_ids (Tensor): Negative item IDs.
+    """
+
+    # Unzip the batch
     feature_ids, feature_ratings, target_ids, target_ratings, anchors, negative_ids = zip(*batch)
     anchor_requests, anchor_ids = zip(*anchors)
 
-    return (feature_ids, feature_ratings, torch.stack(target_ids)), torch.stack(target_ratings), (anchor_requests, torch.stack(anchor_ids)), torch.stack(negative_ids)
+    # Stack the tensors
+    rec_features = (feature_ids, feature_ratings, torch.stack(target_ids))
+    rec_targets = torch.stack(target_ratings)
+    anchors = (anchor_requests, torch.stack(anchor_ids))
+    negative_ids = torch.stack(negative_ids)
 
-def train_test_split_ratings(ratings: pd.DataFrame, train_size: float = 0.8):
+    return rec_features, rec_targets, anchors, negative_ids
+
+
+def train_test_split_ratings(ratings: pd.DataFrame, train_size: float = 0.8) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Split ratings into a train and test set. For a user with n ratings the first 
+    Split ratings into a train and test set. For a user with n ratings the first
     floor(n * train_size) ratings are used for training and the rest for testing.
+
+    Args:
+        ratings (pd.DataFrame): The ratings dataframe.
+        train_size (float): The fraction of ratings to use for training.
+    
+    Returns:
+        train_ratings (pd.DataFrame): The training ratings.
+        test_ratings (pd.DataFrame): The testing ratings.
     """
+
     def split_user_ratings(user_ratings: pd.DataFrame):
         num_ratings = len(user_ratings)
         num_train_ratings = int(num_ratings * train_size)
-        
+
         train_data = user_ratings.iloc[:num_train_ratings]
         test_data = user_ratings.iloc[num_train_ratings:]
-        
+
         return train_data, test_data
 
     train_ratings = []
@@ -149,20 +231,29 @@ def train_test_split_ratings(ratings: pd.DataFrame, train_size: float = 0.8):
     test_ratings = pd.concat(test_ratings)
 
     return train_ratings, test_ratings
-    
-def train_test_split_requests(requests: pd.DataFrame, **kwargs) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
-    def split_request(row: pd.Series) -> pd.Series: 
-        train_req, test_req = train_test_split(row['request'], **kwargs)
+
+def train_test_split_requests(requests: pd.DataFrame, **kwargs) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Split requests into a train and test set.
+
+    Args:
+        requests (pd.DataFrame): The requests dataframe.
+        kwargs: Additional arguments to pass to train_test_split.
+    """
+
+    def split_request(row: pd.Series) -> pd.Series:
+        train_req, test_req = train_test_split(row["request"], **kwargs)
 
         return pd.Series([train_req, test_req])
 
-    requests[['train_requests', 'test_requests']] = requests.apply(split_request, axis=1)
+    requests[["train_requests", "test_requests"]] = requests.apply(split_request, axis=1)
 
-    train_requests = requests[['item_id', 'item_title', 'train_requests']].rename(columns={'train_requests': 'requests'})
-    test_requests = requests[['item_id', 'item_title', 'test_requests']].rename(columns={'test_requests': 'requests'})
+    train_requests = requests[["item_id", "item_title", "train_requests"]].rename(columns={"train_requests": "requests"})
+    test_requests = requests[["item_id", "item_title", "test_requests"]].rename(columns={"test_requests": "requests"})
 
     return train_requests, test_requests
+
 
 def simulate(
     model: AutoModelForCausalLM,
@@ -171,6 +262,19 @@ def simulate(
     max_length: int = 64,
     output_column_name: str = "request"
 ) -> pd.DataFrame:
+    """
+    Generate responses for a given prompt using a model.
+
+    Args:
+        model (AutoModelForCausalLM): Language model.
+        tokenizer (AutoTokenizer): Tokenizer.
+        dataloader (DataLoader): The data to generate responses for.
+        max_length (int, optional): The maximum length of the generated response.
+        output_column_name (str, optional): The name of the output column in the returned dataframe.
+    
+    Returns:
+        data (pd.DataFrame): The generated responses.
+    """
     data = pd.DataFrame(columns=["item_id", "item_title", output_column_name])
 
     with torch.no_grad():
@@ -182,13 +286,18 @@ def simulate(
             batch_output_tokens = model.generate(**batch_input_tokens, max_new_tokens=max_length, do_sample=True)
 
             # Decode response
-            responses = [tokenizer.decode(output_tokens[len(input_tokens):], skip_special_tokens=True).strip('\"') for input_tokens, output_tokens in zip(batch_input_tokens["input_ids"], batch_output_tokens)]
+            responses = [
+                tokenizer.decode(output_tokens[len(input_tokens) :], skip_special_tokens=True).strip('"')
+                for input_tokens, output_tokens in zip(batch_input_tokens["input_ids"], batch_output_tokens)
+            ]
 
-            batch_output = pd.DataFrame({
-                "item_id": item_ids,
-                "item_title": item_titles,
-                output_column_name: responses,
-            })
+            batch_output = pd.DataFrame(
+                {
+                    "item_id": item_ids,
+                    "item_title": item_titles,
+                    output_column_name: responses,
+                }
+            )
 
             data = pd.concat([data, batch_output], ignore_index=True)
 

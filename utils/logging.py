@@ -1,10 +1,19 @@
 
+from typing import Dict
+
 from torch import nn
 
 
-def get_model_statistics(model: nn.Module, norm_type: int = 2) -> dict:
+def get_model_statistics(model: nn.Module, norm_type: int = 2) -> Dict[str, Dict[str, float]]:
     """
-    Returns the parameter and gradient statistics of a model.
+    Get the parameter and gradient statistics of a model.
+
+    Args:
+        model (nn.Module): Model to get the statistics from.
+        norm_type (int, optional): The type of norm to use, optional.
+
+    Returns:
+        stats Dict[str, Dict[str, float]]: Dictionary containing the parameter and gradient statistics.
     """
 
     num_params = 0

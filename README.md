@@ -5,12 +5,9 @@ Conversational Recommender System
 ![Results](resources/crecs.jpeg)
 
 ## Install 
-## Install 
 
 The steps to prepare the environment are outlined below.
-The steps to prepare the environment are outlined below.
 
-### x86-64 Based Systems
 ### x86-64 Based Systems
 
 1. Create an environment:
@@ -51,7 +48,6 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 4. Install `transformers` from main:
 ```bash
 pip install git+https://github.com/huggingface/transformers.git
-pip install git+https://github.com/huggingface/transformers.git
 ```
 
 ## Data
@@ -69,9 +65,7 @@ python preprocess.py
 ```
 
 ## Training
-## Training
 
-The steps to train the recommendation system are outlined below.
 The steps to train the recommendation system are outlined below.
 
 1. Ensure you have access to all of the LLM's used in `simulate_requests.py`, and that you are logged into huggingface:
@@ -83,8 +77,6 @@ huggingface-cli login
 ```bash
 wandb login
 ```
-
-### Collaborative Filtering
 
 ### Collaborative Filtering
 
@@ -100,32 +92,8 @@ python simulate_requests.py
 python train_collaborative.py
 ```
 
-### Content-Based Filtering
-
-### Content-Based Filtering
-
-To train the encoder using content filtering:
-
-1. Generate item descriptions:
-```bash
-python generate_descriptions.py
-```
-
-2. Train the encoder:
-```bash
-python train_content.py
-```
-
-## App
 ## App
 
-1. Install the required packages for the app frontend:
-```bash
-cd app/frontend
-npm install
-``` 
-
-2. Start the backend:
 1. Install the required packages for the app frontend:
 ```bash
 cd app/frontend
@@ -137,7 +105,6 @@ npm install
 python app/backend/app.py
 ```
 
-3. In a seperate terminal, start the frontend:
 3. In a seperate terminal, start the frontend:
 ```bash
 cd app/frontend

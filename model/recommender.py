@@ -5,6 +5,7 @@ import torch.nn as nn
 from torch import Tensor
 
 from model.layers import FactorizationMachine, FeaturesEmbedding, FeaturesLinear, MultiLayerPerceptron
+from utils.misc import take_annotation_from
 
 
 class DeepFM(nn.Module):
@@ -74,3 +75,7 @@ class DeepFM(nn.Module):
             feature_ratings = feature_ratings.repeat(self.num_items).split(len(feature_ratings))
 
             return self.forward((feature_ids, feature_ratings, item_ids))
+
+    @take_annotation_from(forward)
+    def __call__(self, *args, **kwargs):
+        return nn.Module.__call__(self, *args, **kwargs)

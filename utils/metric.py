@@ -8,8 +8,20 @@ from utils.misc import pairwise_cosine_distance
 
 
 def get_reid_metrics(queries: Tuple[Tensor, Tensor], gallery: Tuple[Tensor, Tensor], device: str = "cpu") -> Dict[str, float]:
+    """
+    Calculate the ReID metrics.
+
+    Args:
+        queries (Tuple[Tensor, Tensor]): Tuple containing the query embeddings and IDs.
+        gallery (Tuple[Tensor, Tensor]): Tuple containing the gallery embeddings and IDs.
+        device (str, optional): Device to use, optional.    
+    
+    Returns:
+        Dict[str, float]: Dictionary containing the ReID metrics.
+    """
+
     query_embeddings, query_ids = queries
-    gallery_embeddings, gallery_ids = gallery 
+    gallery_embeddings, gallery_ids = gallery
 
     num_gallery = len(gallery_embeddings)
 
@@ -39,7 +51,19 @@ def get_reid_metrics(queries: Tuple[Tensor, Tensor], gallery: Tuple[Tensor, Tens
         "rank-10": cmc_curve[9].item(),
     }
 
+
 def get_id_metrics(predictions: Tensor, target_ids: Tensor) -> Dict[str, float]:
+    """
+    Calculate the ID metrics.
+
+    Args:
+        predictions (Tensor): Predictions from the model.
+        target_ids (Tensor): Target IDs.
+
+    Returns:
+        Dict[str, float]: Dictionary containing the ID metrics    
+    """
+
     prediction_scores, prediction_ids = predictions[:, 0], predictions[:, 1].int()
 
     id_accuracy = accuracy_score(target_ids.cpu(), prediction_ids.cpu())

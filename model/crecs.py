@@ -107,10 +107,6 @@ class CRECS(nn.Module):
 
         return item_ids[ranking], item_ratings[ranking]
 
-    @take_annotation_from(forward)
-    def __call__(self, *args, **kwargs):
-        return nn.Module.__call__(self, *args, **kwargs)
-    
     def load_weights(self, path: str) -> None:
         """
         Load the model weights from a file.
@@ -125,3 +121,7 @@ class CRECS(nn.Module):
             state_dict = {k: v for k, v in state_dict.items() if "classifier" not in k}
 
         self.load_state_dict(state_dict)
+
+    @take_annotation_from(forward)
+    def __call__(self, *args, **kwargs):
+        return nn.Module.__call__(self, *args, **kwargs)

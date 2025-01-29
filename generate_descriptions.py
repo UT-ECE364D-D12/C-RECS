@@ -1,3 +1,7 @@
+from utils.misc import suppress_warnings
+
+suppress_warnings()
+
 import os
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
@@ -18,15 +22,16 @@ from utils.data import SimulatorDataset, simulate
 MODEL_NAME = "google/gemma-7b-it"
 SPLIT_STRING = "\nmodel\n"
 
-PROMPT = [lambda movie: f"""In one short paragraph, introduce the movie {movie} and describe its attributes precisely including but not limited to genre, director, actors, time period, country, characters, plot/theme, mood/tone, critical acclaim/awards"""]
+PROMPT = [
+    lambda movie: f"""In one short paragraph, introduce the movie {movie} and describe its attributes precisely including but not limited to genre, director, actors, time period, country, characters, plot/theme, mood/tone, critical acclaim/awards"""
+]
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--dataset_path', type=str, default="data/ml-20m/movies.csv", help='Path to the dataset')
-    parser.add_argument('--output_path', type=str, default="data/ml-20m/descriptions.csv", help='Path to save the descriptions')
-    parser.add_argument('--batch_size', type=int, default=32, help='Batch size for the dataloader')
+    parser.add_argument("--dataset_path", type=str, default="data/ml-20m/movies.csv", help="Path to the dataset")
+    parser.add_argument("--output_path", type=str, default="data/ml-20m/descriptions.csv", help="Path to save the descriptions")
+    parser.add_argument("--batch_size", type=int, default=32, help="Batch size for the dataloader")
 
     args = parser.parse_args()
 
