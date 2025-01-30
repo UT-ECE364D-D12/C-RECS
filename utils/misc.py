@@ -30,6 +30,10 @@ def send_to_device(object: Union[Tensor, Dict, List, Tuple], device: str = "cpu"
 def cosine_distance(x: Tensor, y: Tensor) -> Tensor:
     """
     Returns the cosine distance between two tensors.
+    
+    Args:
+        x (Tensor): First tensor.
+        y (Tensor): Second tensor.
     """
     return 1 - torch.cosine_similarity(x, y)
 
@@ -37,6 +41,10 @@ def cosine_distance(x: Tensor, y: Tensor) -> Tensor:
 def pairwise_cosine_distance(x: Tensor, y: Tensor = None) -> Tensor:
     """
     Returns the pairwise cosine distance between two tensors.
+    
+    Args:
+        x (Tensor): First tensor.
+        y (Tensor): Second tensor.
     """
     return 1 - pairwise_cosine_similarity(x, y, zero_diagonal=False)
 
@@ -44,6 +52,9 @@ def pairwise_cosine_distance(x: Tensor, y: Tensor = None) -> Tensor:
 def set_random_seed(seed: int) -> None:
     """
     Set the random seed for reproducibility.
+    
+    Args:
+        seed (int): Random seed.
     """
     random.seed(seed)
     np.random.seed(seed)

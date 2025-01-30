@@ -10,6 +10,10 @@ from utils.misc import take_annotation_from
 
 
 class Criterion(nn.Module):
+    """
+    Parent criterion class that defines the interface for all custom loss functions.
+    """
+    
     def __init__(self) -> None:
         super().__init__()
 
@@ -28,6 +32,12 @@ class Criterion(nn.Module):
 
 
 class RecommenderCriterion(Criterion):
+    """
+    Recommender criterion that computes the Mean Squared Error (MSE) loss.
+    
+    Args:
+        loss_weights (Dict[str, float]): Weights for each loss term, optional
+    """
     def __init__(self, loss_weights: Dict[str, float] = {}) -> None:
         super().__init__()
 
@@ -44,6 +54,17 @@ class RecommenderCriterion(Criterion):
 
 
 class EncoderCriterion(Criterion):
+    """
+    Encoder criterion that computes the triplet, focal, variance, invariance, and covariance losses.
+    
+    Args:
+        expander (MultiLayerPerceptron): Expander to increase the dimensionality of the embeddings.
+        loss_weights (Dict[str, float]): Weights for each loss term, optional
+        triplet_margin (float): Margin for the triplet loss, optional
+        triplet_scale (float): Scaling factor for the triplet loss, optional
+        focal_gamma (float): Gamma parameter for the focal loss, optional
+        vicreg_gamma (float): Gamma parameter for the variance loss, optional
+    """
     def __init__(
         self,
         expander: MultiLayerPerceptron,
@@ -207,6 +228,9 @@ class EncoderCriterion(Criterion):
 class CollaborativeCriterion(Criterion):
     """
     A joint criterion that combines the recommender and encoder criteria, used during collaborative training.
+    
+    Args:
+        loss_weights (Dict[str, float]): Weights for each loss term, optional
     """
 
     def __init__(self, loss_weights: Dict[str, float] = {}, **kwargs) -> None:
@@ -244,6 +268,11 @@ class CollaborativeCriterion(Criterion):
 def masked_cross_entropy_loss(logits: Tensor, targets: Tensor, valid_mask: Tensor) -> Tensor:
     """
     Returns the cross-entropy loss of the input while ignoring masked-out logits.
+    
+    Args:
+        logits (Tensor): Logits of the model.
+        targets (Tensor): Target labels.
+        valid_mask (Tensor): Mask to ignore invalid logits.
     """
     # Mask out invalid logits so they don't affect the maximum value
     logits = logits.masked_fill(~valid_mask, -1e9)

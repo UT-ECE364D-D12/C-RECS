@@ -36,6 +36,9 @@ model = CRECS(weights="weights/collaborative/crecs.pt", **args["model"]).to(devi
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
+    """
+    Backend server for the chatbot.
+    """
     data: Dict = request.get_json()
     user_message = data.get("message", "")
 
