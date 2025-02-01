@@ -56,7 +56,7 @@ This repository uses [MovieLens](https://grouplens.org/datasets/movielens/), a d
 
 1. Download MovieLens 20M:
 ```bash
-bash download_data.sh
+bash scripts/download_data.sh
 ```
 
 2. Preprocess the data:
@@ -78,16 +78,29 @@ huggingface-cli login
 wandb login
 ```
 
+### Recommender
+
+To train the recommender by itself:
+
+1. Update `configs/recommender.yaml` file with the desired parameters.
+
+2. Train the recommender:
+```bash
+python train_recommender.py
+```
+
 ### Collaborative Filtering
 
 To jointly train the encoder and recommender using collaborative filtering:
 
-1. Simulate item requests:
+1. Update `configs/collaborative.yaml` file with the desired parameters.
+
+2. Simulate item requests:
 ```bash
 python simulate_requests.py
 ```
 
-2. Train the encoder & recommender:
+3. Train the encoder & recommender:
 ```bash
 python train_collaborative.py
 ```
