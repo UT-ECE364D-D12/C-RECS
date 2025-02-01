@@ -54,6 +54,7 @@ def train_one_epoch(
         loss.backward()
         optimizer.step()
 
+
 @torch.no_grad()
 def evaluate(
     model: nn.Module,
@@ -134,7 +135,7 @@ def train(
 
         # Save the latest and best model weights
         torch.save(model.state_dict(), os.path.join(output_dir, "last.pt"))
-        
+
         if test_losses["overall"] < best_loss:
             best_loss = test_losses["overall"]
             torch.save(model.state_dict(), os.path.join(output_dir, "best.pt"))

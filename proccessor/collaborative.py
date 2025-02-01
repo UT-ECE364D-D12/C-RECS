@@ -72,25 +72,22 @@ def train_one_epoch(
             model_statistics = {module: get_model_statistics(model.__getattr__(module.lower())) for module in modules}
 
             wandb.log({"Train": {"Loss": batch_losses}, **model_statistics}, step=wandb.run.step + len(anchor_requests))
-        
+
         # Backward pass
         loss = batch_losses["overall"]
 
         loss.backward()
 
         if (i + 1) % grad_accumulation_steps == 0:
-            if max_grad_norm: clip_grad_norm_(model.parameters(), max_norm=max_grad_norm)
+            if max_grad_norm:
+                clip_grad_norm_(model.parameters(), max_norm=max_grad_norm)
             optimizer.step()
             optimizer.zero_grad()
 
+
 @torch.no_grad()
 def evaluate(
-    model: CRECS,
-    criterion: CollaborativeCriterion,
-    dataloader: DataLoader,
-    epoch: int,
-    device: str = "cpu",
-    verbose: bool = True
+    model: CRECS, criterion: CollaborativeCriterion, dataloader: DataLoader, epoch: int, device: str = "cpu", verbose: bool = True
 ) -> Tuple[Dict[str, float], Dict[str, float]]:
     """
     Evaluate CRECS using collaborative filtering.
@@ -194,7 +191,7 @@ def train(
         output_dir (str, optional): Directory to save the model weights.
         **kwargs: Additional training arguments.
     """
-    
+
     # Ensure the output directory exists
     os.makedirs(output_dir, exist_ok=True)
 
