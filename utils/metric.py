@@ -14,8 +14,8 @@ def get_reid_metrics(queries: Tuple[Tensor, Tensor], gallery: Tuple[Tensor, Tens
     Args:
         queries (Tuple[Tensor, Tensor]): Tuple containing the query embeddings and IDs.
         gallery (Tuple[Tensor, Tensor]): Tuple containing the gallery embeddings and IDs.
-        device (str, optional): Device to use, optional.    
-    
+        device (str, optional): Device to use, optional.
+
     Returns:
         Dict[str, float]: Dictionary containing the ReID metrics.
     """
@@ -61,7 +61,7 @@ def get_id_metrics(predictions: Tensor, target_ids: Tensor) -> Dict[str, float]:
         target_ids (Tensor): Target IDs.
 
     Returns:
-        Dict[str, float]: Dictionary containing the ID metrics    
+        Dict[str, float]: Dictionary containing the ID metrics
     """
 
     prediction_scores, prediction_ids = predictions[:, 0], predictions[:, 1].int()

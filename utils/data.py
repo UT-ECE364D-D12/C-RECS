@@ -15,7 +15,7 @@ class RatingsDataset(Dataset):
     Dataset for ratings prediction, used to train the recommender system.
 
     Args:
-        ratings (pd.DataFrame): The ratings dataframe.    
+        ratings (pd.DataFrame): The ratings dataframe.
     """
 
     def __init__(self, ratings: pd.DataFrame) -> None:
@@ -35,7 +35,7 @@ class RatingsDataset(Dataset):
             feature_ids (Tensor): The feature item IDs.
             feature_ratings (Tensor): The feature item ratings.
             item_id (Tensor): The target item ID.
-            rating (Tensor): The target item rating.        
+            rating (Tensor): The target item rating.
         """
 
         feature_ids, feature_ratings, item_id, rating = self.ratings.iloc[idx][["feature_ids", "feature_ratings", "item_id", "rating"]]
@@ -54,7 +54,7 @@ class CollaborativeDataset(Dataset):
 
     Args:
         ratings (pd.DataFrame): The ratings dataframe.
-        requests (pd.DataFrame): The requests dataframe. 
+        requests (pd.DataFrame): The requests dataframe.
     """
 
     def __init__(self, ratings: pd.DataFrame, requests: pd.DataFrame) -> None:
@@ -125,13 +125,13 @@ class SimulatorDataset(Dataset):
 
         Args:
             idx (int): The index of the item.
-        
+
         Returns:
             item_id (int): The item ID.
             item_title (str): The item title.
             prompt (str): The prompt.
         """
-        
+
         prompt_idx, item_idx = divmod(idx, len(self.items))
         item_id, item_title = self.items.iloc[item_idx][["item_id", "item_title"]]
 
@@ -203,7 +203,7 @@ def train_test_split_ratings(ratings: pd.DataFrame, train_size: float = 0.8) -> 
     Args:
         ratings (pd.DataFrame): The ratings dataframe.
         train_size (float): The fraction of ratings to use for training.
-    
+
     Returns:
         train_ratings (pd.DataFrame): The training ratings.
         test_ratings (pd.DataFrame): The testing ratings.
@@ -260,7 +260,7 @@ def simulate(
     tokenizer: AutoTokenizer,
     dataloader: DataLoader,
     max_length: int = 64,
-    output_column_name: str = "request"
+    output_column_name: str = "request",
 ) -> pd.DataFrame:
     """
     Generate responses for a given prompt using a model.
@@ -271,7 +271,7 @@ def simulate(
         dataloader (DataLoader): The data to generate responses for.
         max_length (int, optional): The maximum length of the generated response.
         output_column_name (str, optional): The name of the output column in the returned dataframe.
-    
+
     Returns:
         data (pd.DataFrame): The generated responses.
     """

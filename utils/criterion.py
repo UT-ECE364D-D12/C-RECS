@@ -13,7 +13,7 @@ class Criterion(nn.Module):
     """
     Parent criterion class that defines the interface for all custom loss functions.
     """
-    
+
     def __init__(self) -> None:
         super().__init__()
 
@@ -34,10 +34,11 @@ class Criterion(nn.Module):
 class RecommenderCriterion(Criterion):
     """
     Recommender criterion that computes the Mean Squared Error (MSE) loss.
-    
+
     Args:
         loss_weights (Dict[str, float]): Weights for each loss term, optional
     """
+
     def __init__(self, loss_weights: Dict[str, float] = {}) -> None:
         super().__init__()
 
@@ -56,7 +57,7 @@ class RecommenderCriterion(Criterion):
 class EncoderCriterion(Criterion):
     """
     Encoder criterion that computes the triplet, focal, variance, invariance, and covariance losses.
-    
+
     Args:
         expander (MultiLayerPerceptron): Expander to increase the dimensionality of the embeddings.
         loss_weights (Dict[str, float]): Weights for each loss term, optional
@@ -65,6 +66,7 @@ class EncoderCriterion(Criterion):
         focal_gamma (float): Gamma parameter for the focal loss, optional
         vicreg_gamma (float): Gamma parameter for the variance loss, optional
     """
+
     def __init__(
         self,
         expander: MultiLayerPerceptron,
@@ -87,7 +89,7 @@ class EncoderCriterion(Criterion):
         self,
         anchor: Tuple[Tensor, Tensor, Tensor],
         positive: Tuple[Tensor, Tensor, Tensor],
-        negative: Tuple[Tensor, Tensor, Tensor]
+        negative: Tuple[Tensor, Tensor, Tensor],
     ) -> Dict[str, Tensor]:
         anchor_embeddings, anchor_logits, anchor_ids = anchor
         positive_embeddings, positive_logits, positive_ids = positive
@@ -108,7 +110,7 @@ class EncoderCriterion(Criterion):
         triplet_loss = self._get_triplet_loss(
             (anchor_embeddings, anchor_ids),
             (positive_embeddings, positive_ids),
-            (negative_embeddings, negative_ids)
+            (negative_embeddings, negative_ids),
         )
 
         id_loss = (
@@ -228,7 +230,7 @@ class EncoderCriterion(Criterion):
 class CollaborativeCriterion(Criterion):
     """
     A joint criterion that combines the recommender and encoder criteria, used during collaborative training.
-    
+
     Args:
         loss_weights (Dict[str, float]): Weights for each loss term, optional
     """
@@ -268,7 +270,7 @@ class CollaborativeCriterion(Criterion):
 def masked_cross_entropy_loss(logits: Tensor, targets: Tensor, valid_mask: Tensor) -> Tensor:
     """
     Returns the cross-entropy loss of the input while ignoring masked-out logits.
-    
+
     Args:
         logits (Tensor): Logits of the model.
         targets (Tensor): Target labels.

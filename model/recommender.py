@@ -41,7 +41,7 @@ class DeepFM(nn.Module):
 
         Args:
             features (Tuple[List[Tensor], List[Tensor], Tensor]): User features, item features, and item IDs.
-        
+
         Returns:
             ratings (Tensor): Predicted ratings.
         """
@@ -62,7 +62,7 @@ class DeepFM(nn.Module):
 
         Args:
             features (Tuple[Tensor, Tensor]): User features and ratings.
-        
+
         Returns:
             ratings (Tensor): Predicted ratings.
         """

@@ -13,8 +13,8 @@ class FeaturesEmbedding(nn.Module):
 
     Args:
         num_items (int): Number of items.
-        embed_dim (int): Embedding dimension.    
-    """ 
+        embed_dim (int): Embedding dimension.
+    """
 
     def __init__(self, num_items: int, embed_dim: int) -> None:
         super().__init__()
@@ -26,14 +26,14 @@ class FeaturesEmbedding(nn.Module):
         self.item_embedding = nn.Embedding(num_items, embed_dim)
 
         self._initialize_weights()
-    
+
     def forward(self, features: Tuple[List[Tensor], List[Tensor], Tensor]) -> Tensor:
         """
         Forward pass of the embedding layer.
 
         Args:
             features (Tuple[List[Tensor], List[Tensor], Tensor]): feature_ids, feature_ratings, item_ids
-        
+
         Returns:
             embeddings (Tensor): User and item embeddings of shape (batch_size, 2, embed_dim).
         """
@@ -74,7 +74,7 @@ class FeaturesLinear(nn.Module):
 
     Args:
         num_items (int): Number of items.
-        output_dim (int): Output dimension.    
+        output_dim (int): Output dimension.
     """
 
     def __init__(self, num_items: int, output_dim: int) -> None:
@@ -95,7 +95,7 @@ class FeaturesLinear(nn.Module):
 
         Args:
             features (Tuple[List[Tensor], List[Tensor], Tensor]): feature_ids, feature_ratings, item_ids
-        
+
         Returns:
             weights (Tensor): Combination of the user and item weights of shape (batch_size, output_dim).
         """
@@ -133,7 +133,7 @@ class FeaturesLinear(nn.Module):
 
 class FactorizationMachine(torch.nn.Module):
     """
-    Factorization Machine that models interactions between features using latent factors.    
+    Factorization Machine that models interactions between features using latent factors.
     """
 
     def __init__(self) -> None:
@@ -170,6 +170,7 @@ class MultiLayerPerceptron(nn.Module):
         output_dim (int): Output dimension.
         dropout (float): Dropout rate, optional.
     """
+
     def __init__(self, input_dim: int, hidden_dims: List[int], output_dim: int, dropout: float = 0.0) -> None:
         super().__init__()
 
@@ -210,6 +211,7 @@ class MultiLayerPerceptron(nn.Module):
         """
         Initialize the weights of the multi-layer perceptron.
         """
+
         for m in self.modules():
             if isinstance(m, nn.Linear):
                 nn.init.kaiming_uniform_(m.weight.data, a=sqrt(5))

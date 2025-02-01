@@ -18,6 +18,7 @@ class Encoder(nn.Module):
         weights (str): Path to the model weights, optional.
         **kwargs: Additional arguments for the model.
     """
+
     def __init__(self, model_name: str = "bert-base-uncased", weights: str = None, **kwargs) -> None:
         super().__init__()
 
@@ -29,7 +30,7 @@ class Encoder(nn.Module):
             device_map="auto",
             torch_dtype=torch.float32,
             attn_implementation=attn_implementation,
-            **kwargs
+            **kwargs,
         )
 
         self.dtype = torch.bfloat16 if attn_implementation == "flash_attention_2" else self.model.dtype
@@ -44,7 +45,7 @@ class Encoder(nn.Module):
 
         Args:
             requests (List[str]): List of requests.
-        
+
         Returns:
             encoded_requests (Tensor): Encoded requests of shape (batch_size, embed_dim).
         """
@@ -73,16 +74,16 @@ def build_expander(embed_dim: int, width: float = 2.0, **kwargs) -> MultiLayerPe
         embed_dim (int): Input embedding dimension.
         width (float): Width multiplier for the hidden layers.
         **kwargs: Additional arguments for the MultiLayerPerceptron.
-    
+
     Returns:
-        expander (MultiLayerPerceptron): Multi-layer perceptron expander. 
+        expander (MultiLayerPerceptron): Multi-layer perceptron expander.
     """
 
     return MultiLayerPerceptron(
         input_dim=embed_dim,
         hidden_dims=[expander_dim := int(embed_dim * width), expander_dim],
         output_dim=expander_dim,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -94,14 +95,9 @@ def build_classifier(embed_dim: int, num_classes: int, **kwargs) -> MultiLayerPe
         embed_dim (int): Input embedding dimension.
         num_classes (int): Number of classes.
         **kwargs: Additional arguments for the MultiLayerPerceptron.
-    
+
     Returns:
         classifier (MultiLayerPerceptron): Multi-layer perceptron classifier.
     """
 
-    return MultiLayerPerceptron(
-        input_dim=embed_dim,
-        hidden_dims=[embed_dim, embed_dim],
-        output_dim=num_classes,
-        **kwargs
-    )
+    return MultiLayerPerceptron(input_dim=embed_dim, hidden_dims=[embed_dim, embed_dim], output_dim=num_classes, **kwargs)

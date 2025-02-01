@@ -33,11 +33,10 @@ class CRECS(nn.Module):
 
     def forward(
         self,
-        rec_features: Tuple[List[Tensor],
-        List[Tensor], Tensor],
+        rec_features: Tuple[List[Tensor], List[Tensor], Tensor],
         anchor_requests: List[str],
         anchor_ids: Tensor,
-        negative_ids: Tensor
+        negative_ids: Tensor,
     ) -> Tuple[Tensor, Tuple[Tensor, Tensor, Tensor], Tuple[Tensor, Tensor, Tensor], Tuple[Tensor, Tensor, Tensor]]:
         """
         Forward pass of the model used during training.
