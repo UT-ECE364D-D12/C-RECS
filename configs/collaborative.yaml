@@ -1,4 +1,4 @@
-name: "ml-20m ModernBERT 8k Users MNRL Duplicate Masking"
+name: "ml-20m ModernBERT 8k Users MNRL LR Scheduler"
 random_seed: 42
 batch_size: 128
 
@@ -7,7 +7,7 @@ model:
     embed_dim: 768
     mlp_dims: [768, 768]
     dropout: 0.5
-    weights: "weights/recommender/best.pt"
+    weights: NULL
 
   encoder:
     model_name: "answerdotai/ModernBERT-base"
@@ -45,19 +45,33 @@ optimizer:
     betas: [0.9, 0.98]
     eps: 1.0e-6
   encoder:
-    lr: 8.0e-5
+    # lr: 8.0e-5
     weight_decay: 0.05
   classifier:
-    lr: 1.0e-4
+    # lr: 1.0e-4
     weight_decay: 0.05
   expander:
-    lr: 1.0e-4
+    # lr: 1.0e-4
     weight_decay: 0.01
   recommender:
-    lr: 1.0e-4
+    # lr: 1.0e-4
     weight_decay: 0.1
+
+scheduler:
+  period: 9000
+  warmup_steps: 1000
+  restart_decay: 0.95
+  min_lr:
+    encoder: 1.0e-6
+    classifier: 1.0e-5
+    expander: 1.0e-5
+    recommender: 1.0e-5
+  max_lr:
+    encoder: 1.0e-4
+    classifier: 1.0e-4
+    expander: 1.0e-4
+    recommender: 1.0e-4
 
 train:
   max_epochs: 3
   max_grad_norm: NULL
-  grad_accumulation_steps: 1

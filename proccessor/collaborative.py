@@ -11,6 +11,7 @@ import wandb
 from model.crecs import CRECS
 from utils.criterion import CollaborativeCriterion
 from utils.logging import get_model_statistics
+from utils.lr import CosineAnnealingWarmRestarts
 from utils.metric import get_id_metrics, get_reid_metrics
 from utils.misc import send_to_device
 
@@ -18,11 +19,11 @@ from utils.misc import send_to_device
 def train_one_epoch(
     model: CRECS,
     optimizer: optim.Optimizer,
+    scheduler: CosineAnnealingWarmRestarts,
     criterion: CollaborativeCriterion,
     dataloader: DataLoader,
     epoch: int,
     max_grad_norm: float = None,
-    grad_accumulation_steps: int = 1,
     device: str = "cpu",
     verbose: bool = True,
 ) -> None:
@@ -52,6 +53,8 @@ def train_one_epoch(
         data = enumerate(dataloader)
 
     for i, (rec_features, rec_targets, anchors, negative_ids) in data:
+        optimizer.zero_grad()
+
         # Unpack the batch & send it to the training device
         anchor_requests, anchor_ids = anchors
 
@@ -66,23 +69,26 @@ def train_one_epoch(
 
         losses = {k: losses.get(k, 0) + v.item() for k, v in batch_losses.items()}
 
-        # Log the gradient/parameter statistics and losses
-        if verbose:
-            modules = ["Encoder", "Recommender", "Classifier"]
-            model_statistics = {module: get_model_statistics(model.__getattr__(module.lower())) for module in modules}
-
-            wandb.log({"Train": {"Loss": batch_losses}, **model_statistics}, step=wandb.run.step + len(anchor_requests))
-
         # Backward pass
         loss = batch_losses["overall"]
 
         loss.backward()
 
-        if (i + 1) % grad_accumulation_steps == 0:
-            if max_grad_norm:
-                clip_grad_norm_(model.parameters(), max_norm=max_grad_norm)
-            optimizer.step()
-            optimizer.zero_grad()
+        if max_grad_norm:
+            clip_grad_norm_(model.parameters(), max_norm=max_grad_norm)
+
+        optimizer.step()
+
+        # Obtain the gradient & parameter statistics
+        modules = ["Encoder", "Recommender", "Classifier"]
+        model_statistics = {module: get_model_statistics(model.__getattr__(module.lower())) for module in modules}
+
+        # Update the learning rates
+        learning_rates = scheduler.step()
+
+        # Log the training progress
+        if verbose:
+            wandb.log({"Train": {"Loss": batch_losses}, **learning_rates, **model_statistics}, step=wandb.run.step + len(anchor_requests))
 
 
 @torch.no_grad()
@@ -165,13 +171,13 @@ def evaluate(
 def train(
     model: CRECS,
     optimizer: optim.Optimizer,
+    scheduler: CosineAnnealingWarmRestarts,
     criterion: CollaborativeCriterion,
     train_dataloader: DataLoader,
     train_subset_dataloader: DataLoader,
     test_dataloader: DataLoader,
     max_epochs: int,
     max_grad_norm: float = 10.0,
-    grad_accumulation_steps: int = 1,
     output_dir: str = "weights/collaborative",
     **kwargs,
 ) -> None:
@@ -187,7 +193,6 @@ def train(
         test_dataloader (DataLoader): Held-out data used for validation.
         max_epochs (int): The number of epochs to train for.
         max_grad_norm (float, optional): Clip value for the gradient norm.
-        grad_accumulation_steps (int, optional): Number of steps to accumulate gradients.
         output_dir (str, optional): Directory to save the model weights.
         **kwargs: Additional training arguments.
     """
@@ -198,7 +203,7 @@ def train(
     best_metric = float("-inf")
 
     for epoch in range(max_epochs):
-        train_one_epoch(model, optimizer, criterion, train_dataloader, epoch, max_grad_norm, grad_accumulation_steps, **kwargs)
+        train_one_epoch(model, optimizer, scheduler, criterion, train_dataloader, epoch, max_grad_norm, **kwargs)
 
         _, train_metrics = evaluate(model, criterion, train_subset_dataloader, epoch, **kwargs)
 

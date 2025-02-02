@@ -1,3 +1,4 @@
+from utils.lr import CosineAnnealingWarmRestarts
 from utils.misc import suppress_warnings
 
 suppress_warnings()
@@ -71,7 +72,7 @@ test_dataloader = DataLoader(
     drop_last=True,
 )
 
-# Create the model and optimizer
+# Create the model
 classifier = build_classifier(num_classes=requests["item_id"].nunique(), **args["classifier"]).to(device)
 
 args["model"]["recommender"]["num_items"] = requests["item_id"].nunique()
@@ -79,15 +80,18 @@ model = CRECS(classifier=classifier, **args["model"]).to(device)
 
 expander = build_expander(**args["expander"]).to(device)
 
+# Define the optimizer and lr scheduler
 optimizer = optim.AdamW(
     [
-        {"params": model.encoder.parameters(), **args["optimizer"]["encoder"]},
-        {"params": expander.parameters(), **args["optimizer"]["expander"]},
-        {"params": model.classifier.parameters(), **args["optimizer"]["classifier"]},
-        {"params": model.recommender.parameters(), **args["optimizer"]["recommender"]},
+        {"name": "encoder", "params": model.encoder.parameters(), **args["optimizer"]["encoder"]},
+        {"name": "recommender", "params": model.recommender.parameters(), **args["optimizer"]["recommender"]},
+        {"name": "classifier", "params": model.classifier.parameters(), **args["optimizer"]["classifier"]},
+        {"name": "expander", "params": expander.parameters(), **args["optimizer"]["expander"]},
     ],
     **args["optimizer"]["all"]
 )
+
+scheduler = CosineAnnealingWarmRestarts(optimizer=optimizer, **args["scheduler"])
 
 # Define the loss function
 criterion = CollaborativeCriterion(expander=expander, **args["criterion"])
@@ -98,6 +102,7 @@ wandb.init(project="C-RECS", name=args["name"], tags=("Encoder", "Collaborative"
 train(
     model=model,
     optimizer=optimizer,
+    scheduler=scheduler,
     criterion=criterion,
     train_dataloader=train_dataloader,
     train_subset_dataloader=train_subset_dataloader,
