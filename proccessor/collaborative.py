@@ -93,7 +93,12 @@ def train_one_epoch(
 
 @torch.no_grad()
 def evaluate(
-    model: CRECS, criterion: CollaborativeCriterion, dataloader: DataLoader, epoch: int, device: str = "cpu", verbose: bool = True
+    model: CRECS,
+    criterion: CollaborativeCriterion,
+    dataloader: DataLoader,
+    epoch: int,
+    device: str = "cpu",
+    verbose: bool = True,
 ) -> Tuple[Dict[str, float], Dict[str, float]]:
     """
     Evaluate CRECS using collaborative filtering.

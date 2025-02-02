@@ -15,11 +15,10 @@ class Encoder(nn.Module):
 
     Args:
         model_name (str): Pre-trained model name, optional.
-        weights (str): Path to the model weights, optional.
         **kwargs: Additional arguments for the model.
     """
 
-    def __init__(self, model_name: str = "bert-base-uncased", weights: str = None, **kwargs) -> None:
+    def __init__(self, model_name: str = "bert-base-uncased", **kwargs) -> None:
         super().__init__()
 
         attn_implementation = None if find_spec("flash_attn") is None else "flash_attention_2"
@@ -35,9 +34,6 @@ class Encoder(nn.Module):
 
         self.dtype = torch.bfloat16 if attn_implementation == "flash_attention_2" else self.model.dtype
         self.embed_dim = self.model.config.hidden_size
-
-        if weights is not None:
-            self.load_state_dict(torch.load(weights, weights_only=True))
 
     def forward(self, requests: List[str]) -> Tensor:
         """
@@ -100,4 +96,9 @@ def build_classifier(embed_dim: int, num_classes: int, **kwargs) -> MultiLayerPe
         classifier (MultiLayerPerceptron): Multi-layer perceptron classifier.
     """
 
-    return MultiLayerPerceptron(input_dim=embed_dim, hidden_dims=[embed_dim, embed_dim], output_dim=num_classes, **kwargs)
+    return MultiLayerPerceptron(
+        input_dim=embed_dim,
+        hidden_dims=[embed_dim, embed_dim],
+        output_dim=num_classes,
+        **kwargs,
+    )
