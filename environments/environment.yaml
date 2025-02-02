@@ -14,7 +14,7 @@ dependencies:
   - pandas
   - cinemagoer
   - scikit-learn
-  - transformers
+  - transformers>=4.48.0
   - sentence-transformers
   - sentencepiece
   - protobuf

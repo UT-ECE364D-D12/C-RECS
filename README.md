@@ -20,11 +20,6 @@ mamba env create -f environments/environment.yaml
 conda activate crecs 
 ```
 
-<!-- TODO: Remove after next transformers release includes answerdotai/ModernBERT-base -->
-3. Install `transformers` from main:
-```bash
-pip install git+https://github.com/huggingface/transformers.git
-```
 > **_NOTE:_**  If you experience issues with `numpy`, try installing it separately using `mamba install -y "numpy==1.26.4"`
 
 ### aarch64 Based Systems
@@ -42,12 +37,6 @@ conda activate crecs
 3. Install `torch`:
 ```bash
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
-```
-
-<!-- TODO: Remove after next transformers release includes answerdotai/ModernBERT-base -->
-4. Install `transformers` from main:
-```bash
-pip install git+https://github.com/huggingface/transformers.git
 ```
 
 ## Data
