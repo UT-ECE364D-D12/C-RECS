@@ -58,9 +58,9 @@ optimizer:
     weight_decay: 0.1
 
 scheduler:
-  period: 9000
-  warmup_steps: 1000
-  restart_decay: 0.95
+  period: 10885
+  warmup_steps: 500
+  restart_decay: 0.7
   min_lr:
     encoder: 1.0e-6
     classifier: 1.0e-5
