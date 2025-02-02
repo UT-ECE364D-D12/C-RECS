@@ -47,12 +47,9 @@ def train_one_epoch(
     model.train()
 
     # Track epoch progress in the terminal
-    if verbose:
-        data = tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Training (Epoch {epoch})", dynamic_ncols=True)
-    else:
-        data = enumerate(dataloader)
+    data = tqdm(dataloader, total=len(dataloader), desc=f"Training (Epoch {epoch})", dynamic_ncols=True) if verbose else dataloader
 
-    for i, (rec_features, rec_targets, anchors, negative_ids) in data:
+    for rec_features, rec_targets, anchors, negative_ids in data:
         optimizer.zero_grad()
 
         # Unpack the batch & send it to the training device
@@ -130,7 +127,7 @@ def evaluate(
     gallery_ids = torch.arange(len(gallery_embeddings)).to(device)
 
     data = tqdm(dataloader, desc=f"Validation (Epoch {epoch})", dynamic_ncols=True) if verbose else dataloader
-    for rec_features, rec_targets, anchors, negative_ids in data:
+    for rec_features, rec_targets, action_targets, anchors, negative_ids in data:
         # Unpack the batch & send it to the evaluation device
         anchor_requests, anchor_ids = anchors
 
@@ -138,10 +135,10 @@ def evaluate(
         anchor_ids, negative_ids = send_to_device(anchor_ids, device), send_to_device(negative_ids, device)
 
         # Forward pass
-        rec_predictions, anchor, positive, negative = model(rec_features, anchor_requests, anchor_ids, negative_ids)
+        rec_predictions, action_predictions, anchor, positive, negative = model(rec_features, anchor_requests, anchor_ids, negative_ids)
 
         # Compute losses
-        batch_losses = criterion(rec_predictions, rec_targets, anchor, positive, negative)
+        batch_losses = criterion(rec_predictions, rec_targets, action_predictions, action_targets, anchor, positive, negative)
 
         losses = {k: losses.get(k, 0) + v.item() for k, v in batch_losses.items()}
 

@@ -1,8 +1,13 @@
-name: "ml-20m ModernBERT 8k Users MNRL LR Scheduler"
+name: "Multi-Turn"
 random_seed: 42
 batch_size: 128
 
 model:
+  agent:
+    embed_dim: 768
+    mlp_dims: [768, 768]
+    dropout: 0.5
+
   recommender:
     embed_dim: 768
     mlp_dims: [768, 768]
@@ -26,10 +31,14 @@ expander:
   dropout: 0.5
 
 criterion:
-  triplet_scale: 20
-  focal_gamma: 0.75
-  vicreg_gamma: 1.0
+  agent:
+    focal_gamma: 0.75
+  encoder:
+    triplet_scale: 20
+    focal_gamma: 0.75
+    vicreg_gamma: 1.0
   loss_weights:
+    agent: 3.2
     mse: 5.5
     id: 3.2
     triplet: 8.3
@@ -43,6 +52,8 @@ optimizer:
     amsgrad: True
     betas: [0.9, 0.98]
     eps: 1.0e-6
+  agent:
+    weight_decay: 0.05
   encoder:
     weight_decay: 0.05
   classifier:
@@ -57,15 +68,17 @@ scheduler:
   warmup_steps: 500
   restart_decay: 0.7
   min_lr:
+    agent: 1.0e-5
     encoder: 1.0e-6
     classifier: 1.0e-5
     expander: 1.0e-5
     recommender: 1.0e-5
   max_lr:
+    agent: 5.0e-4
     encoder: 1.0e-4
-    classifier: 1.0e-4
-    expander: 1.0e-4
-    recommender: 1.0e-4
+    classifier: 5.0e-4
+    expander: 5.0e-4
+    recommender: 5.0e-4
 
 train:
   max_epochs: 3

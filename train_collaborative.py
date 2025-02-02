@@ -83,6 +83,7 @@ expander = build_expander(**args["expander"]).to(device)
 # Define the optimizer and lr scheduler
 optimizer = optim.AdamW(
     [
+        {"name": "agent", "params": model.agent.parameters(), **args["optimizer"]["agent"]},
         {"name": "encoder", "params": model.encoder.parameters(), **args["optimizer"]["encoder"]},
         {"name": "recommender", "params": model.recommender.parameters(), **args["optimizer"]["recommender"]},
         {"name": "classifier", "params": model.classifier.parameters(), **args["optimizer"]["classifier"]},

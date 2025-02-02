@@ -22,6 +22,8 @@ class CRECS(nn.Module):
     def __init__(self, classifier: MultiLayerPerceptron = None, weights: str = None, **kwargs) -> None:
         super().__init__()
 
+        self.agent = MultiLayerPerceptron(**kwargs["agent"], output_dim=2)
+
         self.recommender = DeepFM(**kwargs["recommender"])
 
         self.encoder = Encoder(**kwargs["encoder"])
@@ -34,36 +36,47 @@ class CRECS(nn.Module):
     def forward(
         self,
         rec_features: Tuple[List[Tensor], List[Tensor], Tensor],
-        anchor_requests: List[str],
+        anchor_conversations: List[str],
         anchor_ids: Tensor,
         negative_ids: Tensor,
-    ) -> Tuple[Tensor, Tuple[Tensor, Tensor, Tensor], Tuple[Tensor, Tensor, Tensor], Tuple[Tensor, Tensor, Tensor]]:
+    ) -> Tuple[
+        Tensor,
+        Tensor,
+        Tuple[Tensor, Tensor, Tensor],
+        Tuple[Tensor, Tensor, Tensor],
+        Tuple[Tensor, Tensor, Tensor],
+    ]:
         """
         Forward pass of the model used during training.
 
         Args:
             rec_features (Tuple[List[Tensor], List[Tensor], Tensor]): User and item features.
-            anchor_requests (List[str]): User requests.
+            anchor_conversations (List[str]): User conversations.
             anchor_ids (Tensor): Positive item IDs.
             negative_ids (Tensor): Negative item IDs.
 
         Returns:
             rec_predictions (Tensor): Predicted ratings for the positive items.
-            anchor (Tuple[Tensor, Tensor, Tensor]): Anchor request embeddings, logits, and IDs.
-            positive (Tuple[Tensor, Tensor, Tensor]): Positive item embeddings, logits, and IDs.
-            negative (Tuple[Tensor, Tensor, Tensor]): Negative item embeddings, logits, and IDs.
+            action_predictions (Tensor): Predicted actions for the user conversations.
+            anchor (Tuple[Tensor, Tensor, Tensor]): Anchor request embeddings, logits, and item IDs.
+            positive (Tuple[Tensor, Tensor, Tensor]): Positive item embeddings, logits, and item IDs.
+            negative (Tuple[Tensor, Tensor, Tensor]): Negative item embeddings, logits, and item IDs.
         """
 
         assert self.classifier is not None, "Classifier must be defined during training."
 
+        # Predict the ratings for the positive items
         rec_predictions = self.recommender(rec_features)
 
-        # Get request/item embeddings: Anchor (Request), Positive (Item), Negative (Random Item)
-        anchor_embeddings = self.encoder(anchor_requests)
+        # Get conversation/item embeddings: Anchor (Conversation), Positive (Item), Negative (Random Item)
+        anchor_embeddings = self.encoder(anchor_conversations)
         positive_embeddings = self.recommender.embedding.item_embedding(anchor_ids)
         negative_embeddings = self.recommender.embedding.item_embedding(negative_ids)
 
-        # Predict the anchor, positive, and negative ids
+        # Predict the agent's actions
+        action_predictions = self.agent(anchor_embeddings)
+
+        # Predict the anchor, positive, and negative item ids
         anchor_logits = self.classifier(anchor_embeddings)
         positive_logits = self.classifier(positive_embeddings)
         negative_logits = self.classifier(negative_embeddings)
@@ -73,7 +86,7 @@ class CRECS(nn.Module):
         positive = (positive_embeddings, positive_logits, anchor_ids)
         negative = (negative_embeddings, negative_logits, negative_ids)
 
-        return rec_predictions, anchor, positive, negative
+        return rec_predictions, action_predictions, anchor, positive, negative
 
     def predict(self, rec_features: Tuple[Tensor, Tensor], request: str, k: int = 10) -> Tuple[Tensor, Tensor]:
         """
