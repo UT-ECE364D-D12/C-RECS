@@ -8,7 +8,7 @@ dependencies:
   - pip
   - pytorch
   - peft
-  - numpy
+  - numpy<2
   - pandas
   - cinemagoer
   - scikit-learn
