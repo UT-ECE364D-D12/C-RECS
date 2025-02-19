@@ -21,7 +21,7 @@ BATCH_SIZES = [16, 32, 32]
 
 PROMPT_GENERATORS = [
     # Normal
-    lambda movie: f"""You are interacting with a movie recommendation system. Your goal is to craft a casual and vague request that will help the system suggest the movie "{movie}" without mentioning its title, characters, or ANY plot elements. Focus on broad genres and simple preferences. For example, for the movie "The Godfather," you might say, "Looking for a classic crime drama." Reply ONLY with the human-like request for a movie. DO NOT include any other text.""",
+    lambda movie: f"""You are interacting with a movie recommendation system. Your goal is to craft a casual request that will help the system suggest the movie "{movie}" without mentioning its title, characters, or ANY plot elements. Focus on broad genres and simple preferences. For example, for the movie "The Godfather," you might say, "Looking for a classic crime drama." Reply ONLY with the human-like request for a movie. DO NOT include any other text.""",
     # Mood/Feeling
     lambda movie: f"""You are interacting with a movie recommendation system. Your goal is to describe the mood you're in, which should lead the system to suggest the movie "{movie}" without including any specific details. Keep it conversational and focus on your feelings or current vibe. For example, for the movie "The Notebook," you could say, "I'm in the mood for something romantic and emotional." Reply ONLY with the human-like request for a movie. DO NOT include any other text.""",
     # Country, Time Period, Critical Acclaim
