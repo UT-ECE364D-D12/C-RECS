@@ -1,4 +1,4 @@
-name: "Rating Embeddings"
+name: "Rating Embeddings 8k Users"
 random_seed: 42
 batch_size: 1024
 
@@ -13,4 +13,4 @@ optimizer:
   weight_decay: 0.01
   
 train:
-  max_epochs: 10
+  max_epochs: 3
