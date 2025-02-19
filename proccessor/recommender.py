@@ -37,6 +37,8 @@ def train_one_epoch(
     model.train()
 
     for features, targets in tqdm(dataloader, desc=f"Training (Epoch {epoch})", dynamic_ncols=True):
+        torch.cuda.empty_cache()
+
         optimizer.zero_grad()
 
         features, targets = send_to_device(features, device), send_to_device(targets, device)
@@ -83,6 +85,8 @@ def evaluate(
     model.eval()
 
     for features, targets in tqdm(dataloader, desc=f"Validation (Epoch {epoch})", dynamic_ncols=True):
+        torch.cuda.empty_cache()
+
         features, targets = send_to_device(features, device), send_to_device(targets, device)
 
         predictions = model(features)
