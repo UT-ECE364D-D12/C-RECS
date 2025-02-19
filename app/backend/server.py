@@ -1,9 +1,8 @@
-import os
 import sys
+from os.path import join
 
 # Add your base directory to the Python path
-BASE_DIR = "./"
-sys.path.append(BASE_DIR)
+sys.path.append(BASE_DIR := "./")
 
 from typing import Dict
 
@@ -19,8 +18,10 @@ from utils.misc import send_to_device
 app = Flask(__name__)
 CORS(app)
 
+DATA_ROOT = "data/single-turn/ml-20m/"
+
 # Load the items
-items = pd.read_csv("data/ml-20m/movies.csv")[["item_id", "item_title"]]
+items = pd.read_csv(join(DATA_ROOT, "movies.csv"))[["item_id", "item_title"]]
 
 num_items = items["item_id"].nunique()
 

@@ -1,4 +1,5 @@
 import os
+from os.path import join
 
 import pandas as pd
 import torch
@@ -14,13 +15,15 @@ from utils.data import RatingsDataset, ratings_collate_fn, train_test_split_rati
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
 
+DATA_ROOT = "data/single-turn/ml-20m/"
+
 # Load arguments from config file
 args = yaml.safe_load(open("configs/recommender.yaml", "r"))
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Load and split data
-ratings = pd.read_parquet("data/ml-20m/processed_ratings.parquet", engine="pyarrow")
+ratings = pd.read_parquet(join(DATA_ROOT, "processed_ratings.parquet"), engine="pyarrow")
 
 train_ratings, test_ratings = train_test_split_ratings(ratings, train_size=0.8)
 

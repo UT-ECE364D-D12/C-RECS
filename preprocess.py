@@ -1,5 +1,4 @@
 # Preprocess the MovieLens 20M dataset
-
 import os
 
 import numpy as np
@@ -8,7 +7,7 @@ import pandas as pd
 from utils.misc import set_random_seed
 
 # Define the root directory where the data is stored
-DATA_ROOT = "data/ml-20m/multi-turn/"
+DATA_ROOT = "data/single-turn/ml-20m/"
 
 set_random_seed(42)
 

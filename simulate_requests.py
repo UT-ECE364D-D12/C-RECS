@@ -1,3 +1,5 @@
+from os.path import join
+
 from utils.misc import suppress_warnings
 
 suppress_warnings()
@@ -15,6 +17,8 @@ from torch.utils.data import DataLoader
 
 from model.llm import build_language_model
 from utils.data import SimulatorDataset, simulate
+
+DATA_ROOT = "data/single-turn/ml-20m/"
 
 MODEL_NAMES = ["google/gemma-7b-it", "mistralai/Mistral-7B-Instruct-v0.2", "meta-llama/Meta-Llama-3.1-8B-Instruct"]
 BATCH_SIZES = [16, 32, 32]
@@ -37,8 +41,8 @@ PROMPT_GENERATORS = [
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--dataset_path", type=str, default="data/ml-20m/movies.csv", help="Path to the dataset")
-    parser.add_argument("--output_path", type=str, default="data/ml-20m/requests.csv", help="Path to save the requests")
+    parser.add_argument("--dataset_path", type=str, default=join(DATA_ROOT, "movies.csv"), help="Path to the dataset")
+    parser.add_argument("--output_path", type=str, default=join(DATA_ROOT, "requests.csv"), help="Path to save the requests")
 
     args = parser.parse_args()
 

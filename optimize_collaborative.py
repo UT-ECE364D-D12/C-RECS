@@ -1,4 +1,5 @@
 import random
+from os.path import join
 from typing import Tuple
 
 import optuna
@@ -16,6 +17,8 @@ from utils.criterion import CollaborativeCriterion
 from utils.data import CollaborativeDataset, collaborative_collate_fn, train_test_split_ratings, train_test_split_requests
 from utils.misc import set_random_seed
 
+DATA_ROOT = "data/single-turn/ml-20m/"
+
 # Load arguments from config file
 args = yaml.safe_load(open("configs/collaborative.yaml", "r"))
 
@@ -24,13 +27,13 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 set_random_seed(args["random_seed"])
 
 # Load and split data
-requests = pd.read_csv("data/ml-20m/requests.csv")
+requests = pd.read_csv(join(DATA_ROOT, "requests.csv"))
 requests = requests.groupby("item_id").agg({"item_title": "first", "request": list}).reset_index()
 requests.set_index("item_id", inplace=True, drop=False)
 
 train_requests, test_requests = train_test_split_requests(requests, train_size=0.8)
 
-ratings = pd.read_parquet("data/ml-20m/processed_ratings.parquet", engine="pyarrow")
+ratings = pd.read_parquet(join(DATA_ROOT, "processed_ratings.parquet"), engine="pyarrow")
 
 train_ratings, test_ratings = train_test_split_ratings(ratings, train_size=0.8)
 
