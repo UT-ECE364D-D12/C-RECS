@@ -20,8 +20,6 @@ mamba env create -f environments/environment.yaml
 conda activate crecs 
 ```
 
-> **_NOTE:_**  If you experience issues with `numpy`, try installing it separately using `mamba install -y "numpy==1.26.4"`
-
 ### aarch64 Based Systems
 
 1. Create an environment:
