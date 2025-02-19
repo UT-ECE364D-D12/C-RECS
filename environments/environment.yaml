@@ -29,3 +29,5 @@ dependencies:
   - flask-cors
   - pyparsing
   - flash-attn
+  - timm
+  - numexpr>=2.8.4
