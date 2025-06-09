@@ -12,7 +12,7 @@ The steps to prepare the environment are outlined below.
 
 1. Create an environment:
 ```bash
-mamba env create -f environments/environment.yaml
+conda env create -f environments/x86_64.yaml
 ```
 
 2. Activate the environment:
@@ -24,17 +24,12 @@ conda activate crecs
 
 1. Create an environment:
 ```bash
-mamba env create -f environments/tacc.yaml
+conda env create -f environments/aarch64.yaml
 ```
 
 2. Activate the environment:
 ```bash
 conda activate crecs 
-```
-
-3. Install `torch`:
-```bash
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 ```
 
 ## Data

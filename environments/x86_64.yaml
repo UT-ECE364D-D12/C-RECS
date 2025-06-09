@@ -2,19 +2,21 @@ name: crecs
 channels:
   - conda-forge
   - pytorch
-  - nvidia  
+  - nvidia
 dependencies:
   - python==3.10
   - pip
-  - pytorch
+  - bitsandbytes
+  - transformers>=4.48.0
+  - sentence-transformers
+  - sentencepiece
+  - torchmetrics
+  - flash-attn
   - peft
   - numpy<2
   - pandas
   - cinemagoer
   - scikit-learn
-  - transformers>=4.48.0
-  - sentence-transformers
-  - sentencepiece
   - protobuf
   - optuna
   - wandb
@@ -22,9 +24,12 @@ dependencies:
   - ipykernel
   - tqdm
   - pytables
-  - torchmetrics
   - flask
   - flask-cors
   - pyparsing
   - timm
   - numexpr>=2.8.4
+  - pip:
+    - torch
+    - torchvision
+    - --extra-index-url https://download.pytorch.org/whl/cu118
