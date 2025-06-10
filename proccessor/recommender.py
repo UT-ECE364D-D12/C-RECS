@@ -105,7 +105,7 @@ def train(
     optimizer: optim.Optimizer,
     criterion: RecommenderCriterion,
     train_dataloader: DataLoader,
-    test_dataloader: DataLoader,
+    val_dataloder: DataLoader,
     max_epochs: int,
     device: str = "cpu",
     output_dir: str = "weights/recommender",
@@ -118,7 +118,7 @@ def train(
         optimizer (optim.Optimizer): The optimizer.
         criterion (RecommenderCriterion): The loss function.
         train_dataloader (DataLoader): The training data.
-        test_dataloader (DataLoader): The validation data.
+        val_dataloader (DataLoader): The validation data.
         max_epochs (int): The number of epochs to train for.
         device (str, optional): The device to use.
         output_dir (str, optional): The directory to save the weights.
@@ -132,14 +132,14 @@ def train(
         train_one_epoch(model, optimizer, criterion, train_dataloader, epoch, device)
 
         # TODO: There is something weird going on with evaluation - GPU memory shoots up masssively and I intermittently get segfaults.
-        test_losses = evaluate(model, criterion, test_dataloader, epoch, device)
+        val_losses = evaluate(model, criterion, val_dataloder, epoch, device)
 
         # Log the validation losses
-        wandb.log({"Validation": {"Loss": test_losses}}, step=wandb.run.step)
+        wandb.log({"Validation": {"Loss": val_losses}}, step=wandb.run.step)
 
         # Save the latest and best model weights
         torch.save(model.state_dict(), os.path.join(output_dir, "last.pt"))
 
-        if test_losses["overall"] < best_loss:
-            best_loss = test_losses["overall"]
+        if val_losses["overall"] < best_loss:
+            best_loss = val_losses["overall"]
             torch.save(model.state_dict(), os.path.join(output_dir, "best.pt"))

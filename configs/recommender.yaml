@@ -1,6 +1,7 @@
-name: "Rating Embeddings 8k Users"
+name: "54k Users"
 random_seed: 42
 batch_size: 1024
+data_root: "/home/tdutton/datasets/crecs/ml-20m/"
 
 recommender:
   embed_dim: 768

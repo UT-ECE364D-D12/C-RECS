@@ -1,41 +1,38 @@
 import os
-from os.path import join
+from pathlib import Path
 
 import pandas as pd
 import torch
+import wandb
 import yaml
 from torch import optim
 from torch.utils.data import DataLoader
 
-import wandb
+from data.ratings_dataset import RatingsDataset, ratings_collate_fn
 from model.recommender import DeepFM
 from proccessor.recommender import train
 from utils.criterion import RecommenderCriterion
-from utils.data import RatingsDataset, ratings_collate_fn, train_test_split_ratings
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
-
-DATA_ROOT = "data/single-turn/ml-20m/"
 
 # Load arguments from config file
 args = yaml.safe_load(open("configs/recommender.yaml", "r"))
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# Load and split data
-ratings = pd.read_parquet(join(DATA_ROOT, "processed_ratings.parquet"), engine="pyarrow")
-
-train_ratings, test_ratings = train_test_split_ratings(ratings, train_size=0.8)
-
 # Create datasets and dataloaders
-train_dataset, test_dataset = RatingsDataset(train_ratings), RatingsDataset(test_ratings)
+data_root = Path(args["data_root"])
+
+train_dataset = RatingsDataset(data_root / "train_ratings.parquet")
+val_dataloader = RatingsDataset(data_root / "val_ratings.parquet")
 
 train_dataloader = DataLoader(train_dataset, collate_fn=ratings_collate_fn, batch_size=args["batch_size"], num_workers=6, shuffle=True)
-
-test_dataloader = DataLoader(test_dataset, collate_fn=ratings_collate_fn, batch_size=args["batch_size"], num_workers=6)
+val_dataloader = DataLoader(val_dataloader, collate_fn=ratings_collate_fn, batch_size=args["batch_size"], num_workers=6)
 
 # Create the model and optimizer
-model = DeepFM(num_items=ratings["item_id"].nunique(), **args["recommender"]).to(device)
+args["recommender"]["num_items"] = pd.read_csv(data_root / "movies.csv")["item_id"].nunique()
+
+model = DeepFM(**args["recommender"]).to(device)
 
 optimizer = optim.AdamW(model.parameters(), **args["optimizer"])
 
@@ -50,7 +47,7 @@ train(
     optimizer=optimizer,
     criterion=criterion,
     train_dataloader=train_dataloader,
-    test_dataloader=test_dataloader,
+    val_dataloder=val_dataloader,
     device=device,
     **args["train"],
 )

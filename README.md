@@ -79,7 +79,7 @@ To jointly train the encoder and recommender using collaborative filtering:
 
 2. Simulate item requests:
 ```bash
-python simulate_requests.py
+python scripts/simulate_ml-20m.py
 ```
 
 3. Train the encoder & recommender:
