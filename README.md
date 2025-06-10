@@ -38,12 +38,12 @@ This repository uses [MovieLens](https://grouplens.org/datasets/movielens/), a d
 
 1. Download MovieLens 20M:
 ```bash
-bash scripts/download_data.sh <data_root>
+./scripts/download_ml-20m.sh <data_root>
 ```
 
 2. Preprocess the data:
 ```bash
-python preprocess.py <data_root>
+python scripts/preprocess_ml-20m.py <data_root>
 ```
 
 ## Training
