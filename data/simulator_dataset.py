@@ -6,6 +6,8 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+PromptGenerator = Callable[[str], str]
+
 
 class SimulatorDataset(Dataset):
     """
@@ -17,7 +19,7 @@ class SimulatorDataset(Dataset):
         prompt_generators (List[Callable]): The prompt generators which generate prompts given an item title.
     """
 
-    def __init__(self, items: pd.DataFrame, tokenizer: AutoTokenizer, prompt_generators: List[Callable]) -> None:
+    def __init__(self, items: pd.DataFrame, tokenizer: AutoTokenizer, prompt_generators: List[PromptGenerator]) -> None:
         self.items = items
         self.tokenizer = tokenizer
         self.prompt_generators = prompt_generators
@@ -58,7 +60,6 @@ def simulate(
     tokenizer: AutoTokenizer,
     dataloader: DataLoader,
     max_length: int = 64,
-    output_column_name: str = "request",
 ) -> pd.DataFrame:
     """
     Generate responses for a given prompt using a model.
@@ -68,12 +69,11 @@ def simulate(
         tokenizer (AutoTokenizer): Tokenizer.
         dataloader (DataLoader): The data to generate responses for.
         max_length (int, optional): The maximum length of the generated response.
-        output_column_name (str, optional): The name of the output column in the returned dataframe.
 
     Returns:
         data (pd.DataFrame): The generated responses.
     """
-    data = pd.DataFrame(columns=["item_id", "item_title", output_column_name])
+    data = pd.DataFrame(columns=["item_id", "item_title", "text"])
 
     with torch.no_grad():
         for item_ids, item_titles, prompts in tqdm(dataloader, desc="Simulating", unit="batch", dynamic_ncols=True):
@@ -93,7 +93,7 @@ def simulate(
                 {
                     "item_id": item_ids,
                     "item_title": item_titles,
-                    output_column_name: responses,
+                    "text": responses,
                 }
             )
 

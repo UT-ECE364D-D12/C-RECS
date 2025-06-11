@@ -60,7 +60,7 @@ python scripts/preprocess_ml-20m.py <data_root>
 
 The steps to train the recommendation system are outlined below.
 
-1. Ensure you have access to all of the LLM's used in `simulate_requests.py`, and that you are logged into huggingface:
+1. Ensure you have access to all of the LLM's used in `simulate_ml-20m.py`, and that you are logged into huggingface:
 ```bash
 huggingface-cli login
 ```
@@ -89,7 +89,7 @@ To jointly train the encoder and recommender using collaborative filtering:
 
 2. Simulate item requests:
 ```bash
-python scripts/simulate_ml-20m.py
+python scripts/simulate_ml-20m.py <data_root> --mode=requests
 ```
 
 3. Train the encoder & recommender:
