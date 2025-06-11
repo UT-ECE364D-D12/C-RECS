@@ -1,4 +1,6 @@
-from os.path import join
+from pathlib import Path
+
+import pandas as pd
 
 from utils.lr import CosineAnnealingWarmRestarts
 from utils.misc import suppress_warnings
@@ -11,21 +13,18 @@ os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
 import random
 
-import pandas as pd
 import torch
 import yaml
 from torch import optim
 from torch.utils.data import DataLoader, Subset
 
 import wandb
+from data.collaborative_dataset import CollaborativeDataset, collaborative_collate_fn
 from model.crecs import CRECS
 from model.encoder import build_classifier, build_expander
 from proccessor.collaborative import train
 from utils.criterion import CollaborativeCriterion
-from utils.data import CollaborativeDataset, collaborative_collate_fn, train_test_split_ratings, train_test_split_requests
 from utils.misc import set_random_seed
-
-DATA_ROOT = "data/single-turn/ml-20m/"
 
 # Load arguments from config file
 args = yaml.safe_load(open("configs/collaborative.yaml", "r"))
@@ -34,25 +33,16 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 set_random_seed(args["random_seed"])
 
-# Load and split data
-requests = pd.read_csv(join(DATA_ROOT, "requests.csv"))
-requests = requests.groupby("item_id").agg({"item_title": "first", "request": list}).reset_index()
-requests.set_index("item_id", inplace=True, drop=False)
-
-train_requests, test_requests = train_test_split_requests(requests, train_size=0.8)
-
-ratings = pd.read_parquet(join(DATA_ROOT, "processed_ratings.parquet"), engine="pyarrow")
-
-train_ratings, test_ratings = train_test_split_ratings(ratings, train_size=0.8)
-
 # Create datasets and dataloaders
-train_dataset = CollaborativeDataset(train_ratings, train_requests)
-test_dataset = CollaborativeDataset(test_ratings, test_requests)
-train_subset = Subset(train_dataset, random.sample(range(len(train_dataset)), k=len(test_dataset)))
+data_root = Path(args["data_root"])
+
+train_dataset = CollaborativeDataset(data_root / "train_ratings.parquet", data_root / "train_requests.csv")
+val_dataset = CollaborativeDataset(data_root / "val_ratings.parquet", data_root / "val_requests.csv")
+train_subset = Subset(train_dataset, random.sample(range(len(train_dataset)), k=len(val_dataset)))
 
 train_dataloader = DataLoader(
     train_dataset,
-    batch_size=args["batch_size"],
+    batch_size=(batch_size := args["batch_size"]),
     shuffle=True,
     collate_fn=collaborative_collate_fn,
     num_workers=8,
@@ -61,25 +51,27 @@ train_dataloader = DataLoader(
 
 train_subset_dataloader = DataLoader(
     train_subset,
-    batch_size=args["batch_size"],
+    batch_size=batch_size,
     shuffle=False,
     collate_fn=collaborative_collate_fn,
     num_workers=8,
     drop_last=True,
 )
 
-test_dataloader = DataLoader(
-    test_dataset,
-    batch_size=args["batch_size"],
+val_dataloader = DataLoader(
+    val_dataset,
+    batch_size=batch_size,
     collate_fn=collaborative_collate_fn,
     num_workers=8,
     drop_last=True,
 )
 
 # Create the model
-classifier = build_classifier(num_classes=requests["item_id"].nunique(), **args["classifier"]).to(device)
+args["classifier"]["num_classes"] = (num_items := pd.read_csv(data_root / "movies.csv")["item_id"].nunique())
+args["model"]["recommender"]["num_items"] = num_items
 
-args["model"]["recommender"]["num_items"] = requests["item_id"].nunique()
+classifier = build_classifier(**args["classifier"]).to(device)
+
 model = CRECS(classifier=classifier, **args["model"]).to(device)
 
 expander = build_expander(**args["expander"]).to(device)
@@ -92,7 +84,7 @@ optimizer = optim.AdamW(
         {"name": "classifier", "params": model.classifier.parameters(), **args["optimizer"]["classifier"]},
         {"name": "expander", "params": expander.parameters(), **args["optimizer"]["expander"]},
     ],
-    **args["optimizer"]["all"]
+    **args["optimizer"]["all"],
 )
 
 scheduler = CosineAnnealingWarmRestarts(optimizer=optimizer, **args["scheduler"])
@@ -110,9 +102,9 @@ train(
     criterion=criterion,
     train_dataloader=train_dataloader,
     train_subset_dataloader=train_subset_dataloader,
-    test_dataloader=test_dataloader,
+    val_dataloader=val_dataloader,
     device=device,
-    **args["train"]
+    **args["train"],
 )
 
 wandb.finish()

@@ -47,12 +47,9 @@ def train_one_epoch(
     model.train()
 
     # Track epoch progress in the terminal
-    if verbose:
-        data = tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Training (Epoch {epoch})", dynamic_ncols=True)
-    else:
-        data = enumerate(dataloader)
+    data = tqdm(dataloader, total=len(dataloader), desc=f"Training (Epoch {epoch})", dynamic_ncols=True, disable=not verbose)
 
-    for i, (rec_features, rec_targets, anchors, negative_ids) in data:
+    for rec_features, rec_targets, anchors, negative_ids in data:
         optimizer.zero_grad()
 
         # Unpack the batch & send it to the training device
@@ -180,7 +177,7 @@ def train(
     criterion: CollaborativeCriterion,
     train_dataloader: DataLoader,
     train_subset_dataloader: DataLoader,
-    test_dataloader: DataLoader,
+    val_dataloader: DataLoader,
     max_epochs: int,
     max_grad_norm: float = 10.0,
     output_dir: str = "weights/collaborative",
@@ -195,7 +192,7 @@ def train(
         criterion (CollaborativeCriterion): Loss function.
         train_dataloader (DataLoader): Data to train on.
         train_subset_dataloader (DataLoader): Subset of the training data to evaluate on.
-        test_dataloader (DataLoader): Held-out data used for validation.
+        val_dataloader (DataLoader): Held-out data used for validation.
         max_epochs (int): The number of epochs to train for.
         max_grad_norm (float, optional): Clip value for the gradient norm.
         output_dir (str, optional): Directory to save the model weights.
@@ -212,14 +209,14 @@ def train(
 
         _, train_metrics = evaluate(model, criterion, train_subset_dataloader, epoch, **kwargs)
 
-        test_losses, test_metrics = evaluate(model, criterion, test_dataloader, epoch, **kwargs)
+        val_losses, val_metrics = evaluate(model, criterion, val_dataloader, epoch, **kwargs)
 
         # Log the training and validation metrics
-        wandb.log({"Train": {"Metric": train_metrics}, "Validation": {"Loss": test_losses, "Metric": test_metrics}}, step=wandb.run.step)
+        wandb.log({"Train": {"Metric": train_metrics}, "Validation": {"Loss": val_losses, "Metric": val_metrics}}, step=wandb.run.step)
 
         # Update the latest and best model weights
         torch.save(model.state_dict(), os.path.join(output_dir, "last.pt"))
 
-        if test_metrics["reid_map"] > best_metric:
-            best_metric = test_metrics["reid_map"]
+        if val_metrics["reid_map"] > best_metric:
+            best_metric = val_metrics["reid_map"]
             torch.save(model.state_dict(), os.path.join(output_dir, "best.pt"))

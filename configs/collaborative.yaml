@@ -1,6 +1,7 @@
-name: "ml-20m ModernBERT 8k Users MNRL LR Scheduler"
+name: "ml-20m ModernBERT 54k Users MNRL LR Scheduler"
 random_seed: 42
 batch_size: 128
+data_root: "/home/tdutton/datasets/crecs/ml-20m/"
 
 model:
   recommender:

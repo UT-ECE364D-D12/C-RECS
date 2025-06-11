@@ -1,4 +1,5 @@
 import random
+from pathlib import Path
 from typing import List, Tuple
 
 import pandas as pd
@@ -16,9 +17,11 @@ class CollaborativeDataset(Dataset):
         requests (pd.DataFrame): The requests dataframe.
     """
 
-    def __init__(self, ratings: pd.DataFrame, requests: pd.DataFrame) -> None:
-        self.ratings = ratings
-        self.requests = requests
+    def __init__(self, ratings_path: Path, requests_path: Path) -> None:
+        self.ratings = pd.read_parquet(ratings_path, engine="pyarrow")
+
+        self.requests = pd.read_csv(requests_path).groupby("item_id").agg({"item_title": "first", "request": list})
+        self.requests = self.requests.reset_index().set_index("item_id", drop=False).rename(columns={"request": "requests"})
 
         self.unique_item_ids = self.ratings["item_id"].unique()
         self.num_items = len(self.requests)
