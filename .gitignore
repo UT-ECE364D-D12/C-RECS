@@ -3,6 +3,7 @@ weights
 wandb
 
 # Distribution metadata
+build/
 *.egg-info/
 
 # Byte-compiled / optimized / DLL files
