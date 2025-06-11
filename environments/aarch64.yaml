@@ -29,6 +29,7 @@ dependencies:
   - timm
   - numexpr>=2.8.4
   - matplotlib
+  - libxcrypt
   - pip:
     - torch
     - torchvision

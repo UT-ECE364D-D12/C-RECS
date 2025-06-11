@@ -27,7 +27,17 @@ conda activate crecs
 conda env create -f environments/aarch64.yaml
 ```
 
-2. Activate the environment:
+2. Build [bitsandbytes](https://huggingface.co/docs/bitsandbytes/en/installation) from source:
+```bash
+git clone https://github.com/bitsandbytes-foundation/bitsandbytes.git && cd bitsandbytes/
+cmake -DCOMPUTE_BACKEND=cuda -S .
+make
+pip install  .
+```
+
+> **_NOTE:_**  If cmake does not recognize CUDA you may need to specify its location with `-DCMAKE_CUDA_COMPILER=<path_to_cuda_bin>`
+
+3. Activate the environment:
 ```bash
 conda activate crecs 
 ```
