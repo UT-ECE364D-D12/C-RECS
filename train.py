@@ -2,6 +2,7 @@ from utils.misc import suppress_warnings
 
 suppress_warnings()
 
+import argparse
 from pathlib import Path
 
 import pandas as pd
@@ -21,87 +22,100 @@ from utils.lr import CosineAnnealingWarmRestarts
 from utils.misc import set_random_seed
 from utils.processor import train
 
-args = yaml.safe_load(open("configs/recommender.yaml", "r"))
 
-# Reproducibility
-set_random_seed(args["random_seed"])
+def main(config_path: str) -> None:
+    print(f"Loading config from {config_path}...")
+    args = yaml.safe_load(open(config_path, "r"))
 
-# Unified training script - can be used for recommender or content training
-training_mode = str(args["training_mode"]).lower()
+    # Reproducibility
+    set_random_seed(args["random_seed"])
 
-assert training_mode in ["recommender", "content"], f"Invalid training mode: {training_mode}"
+    # Can be used for recommender or content training
+    training_mode = str(args["training_mode"]).lower()
 
-# Create training and validation datasets
-args["data"]["root"] = Path(args["data"]["root"])
+    assert training_mode in ["recommender", "content"], f"Invalid training mode: {training_mode}"
 
-if training_mode == "recommender":
-    train_loader, val_loader = build_rec_dataloaders(**args["data"])
-elif training_mode == "content":
-    train_loader, val_loader = build_content_dataloaders(**args["data"])
+    # Create training and validation datasets
+    print("Loading datasets...")
+    args["data"]["root"] = Path(args["data"]["root"])
 
-# Create the model & optimizer
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-num_items = pd.read_csv(args["data"]["root"] / "movies.csv")["item_id"].nunique()
+    if training_mode == "recommender":
+        train_loader, val_loader = build_rec_dataloaders(**args["data"])
+    elif training_mode == "content":
+        train_loader, val_loader = build_content_dataloaders(**args["data"])
 
-if training_mode == "recommender":
-    args["recommender"]["num_items"] = num_items
+    # Create the model & optimizer
+    print("Creating model...")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    num_items = pd.read_csv(args["data"]["root"] / "movies.csv")["item_id"].nunique()
 
-    model = DeepFM(**args["recommender"]).to(device)
-elif training_mode == "content":
-    args["classifier"]["num_classes"] = num_items
-    args["model"]["recommender"]["num_items"] = num_items
+    if training_mode == "recommender":
+        args["recommender"]["num_items"] = num_items
 
-    classifier = build_classifier(**args["classifier"]).to(device)
-    expander = build_expander(**args["expander"]).to(device)
-    model = CRECS(classifier=classifier, **args["model"]).to(device)
+        model = DeepFM(**args["recommender"]).to(device)
+    elif training_mode == "content":
+        args["classifier"]["num_classes"] = num_items
+        args["model"]["recommender"]["num_items"] = num_items
 
-# Create the optimizer
-if training_mode == "recommender":
-    optimizer = optim.AdamW([{"name": "recommender", "params": model.parameters()}], **args["optimizer"])
-elif training_mode == "content":
-    optimizer = optim.AdamW(
-        [
-            {"name": "encoder", "params": model.encoder.parameters(), **args["optimizer"]["encoder"]},
-            {"name": "recommender", "params": model.recommender.parameters(), **args["optimizer"]["recommender"]},
-            {"name": "classifier", "params": model.classifier.parameters(), **args["optimizer"]["classifier"]},
-            {"name": "expander", "params": expander.parameters(), **args["optimizer"]["expander"]},
-        ],
-        **args["optimizer"]["all"],
+        classifier = build_classifier(**args["classifier"]).to(device)
+        expander = build_expander(**args["expander"]).to(device)
+        model = CRECS(classifier=classifier, **args["model"]).to(device)
+
+    # Create the optimizer
+    if training_mode == "recommender":
+        optimizer = optim.AdamW([{"name": "recommender", "params": model.parameters()}], **args["optimizer"])
+    elif training_mode == "content":
+        optimizer = optim.AdamW(
+            [
+                {"name": "encoder", "params": model.encoder.parameters(), **args["optimizer"]["encoder"]},
+                {"name": "recommender", "params": model.recommender.parameters(), **args["optimizer"]["recommender"]},
+                {"name": "classifier", "params": model.classifier.parameters(), **args["optimizer"]["classifier"]},
+                {"name": "expander", "params": expander.parameters(), **args["optimizer"]["expander"]},
+            ],
+            **args["optimizer"]["all"],
+        )
+
+    # Create the learning rate scheduler
+    scheduler = CosineAnnealingWarmRestarts(optimizer=optimizer, **args["scheduler"])
+
+    # Define the loss function
+    if training_mode == "recommender":
+        criterion = RecommenderCriterion()
+    elif training_mode == "content":
+        criterion = JointCriterion(expander=expander, **args["criterion"])
+
+    # Create evaluation jobs
+    print("Building evaluation jobs...")
+    if training_mode == "recommender":
+        rec_eval_dataloader = build_rec_eval_dataloader(**args["data"])
+        rec_eval = RecommenderEvaluator(**args["evaluator"])
+        eval_jobs = [(model, rec_eval, rec_eval_dataloader)]
+    elif training_mode == "content":
+        rec_eval_dataloader = build_rec_eval_dataloader(**args["data"])
+        rec_eval = RecommenderEvaluator(**args["evaluator"])
+        eval_jobs = [(model.recommender, rec_eval, rec_eval_dataloader)]
+
+    # Begin logging & training
+    wandb.init(project="C-RECS", name=args["name"], tags=(args["training_mode"],), config=args)
+
+    train(
+        model=model,
+        optimizer=optimizer,
+        scheduler=scheduler,
+        criterion=criterion,
+        train_dataloader=train_loader,
+        val_dataloader=val_loader,
+        eval_jobs=eval_jobs,
+        device=device,
+        **args["train"],
     )
 
-# Create the learning rate scheduler
-scheduler = CosineAnnealingWarmRestarts(optimizer=optimizer, **args["scheduler"])
-
-# Define the loss function
-if training_mode == "recommender":
-    criterion = RecommenderCriterion()
-elif training_mode == "content":
-    criterion = JointCriterion(expander=expander, **args["criterion"])
+    wandb.finish()
 
 
-# Create evaluation jobs
-if training_mode == "recommender":
-    rec_eval_dataloader = build_rec_eval_dataloader(**args["data"])
-    rec_eval = RecommenderEvaluator(**args["evaluator"])
-    eval_jobs = [(model, rec_eval, rec_eval_dataloader)]
-elif training_mode == "content":
-    rec_eval_dataloader = build_rec_eval_dataloader(**args["data"])
-    rec_eval = RecommenderEvaluator(**args["evaluator"])
-    eval_jobs = [(model.recommender, rec_eval, rec_eval_dataloader)]
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Training")
+    parser.add_argument("--config", type=str, help="Path to config file")
+    args = parser.parse_args()
 
-# Begin logging & training
-wandb.init(project="C-RECS", name=args["name"], tags=(args["training_mode"],), config=args)
-
-train(
-    model=model,
-    optimizer=optimizer,
-    scheduler=scheduler,
-    criterion=criterion,
-    train_dataloader=train_loader,
-    val_dataloader=val_loader,
-    eval_jobs=eval_jobs,
-    device=device,
-    **args["train"],
-)
-
-wandb.finish()
+    main(config_path=args.config)
