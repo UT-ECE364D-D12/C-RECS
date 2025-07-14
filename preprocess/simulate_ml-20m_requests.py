@@ -1,10 +1,3 @@
-from sklearn.model_selection import train_test_split
-
-from data.simulator_dataset import SimulatorDataset, simulate
-from utils.misc import suppress_warnings
-
-suppress_warnings()
-
 import os
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
@@ -15,9 +8,10 @@ from pathlib import Path
 
 import pandas as pd
 import torch
+from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 
-from model.llm import build_language_model
+from .utils import SimulatorDataset, build_language_model, simulate
 
 MODEL_NAMES = ["meta-llama/Llama-3.3-70B-Instruct"]
 BATCH_SIZES = [48]
