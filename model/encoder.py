@@ -62,14 +62,14 @@ class Encoder(nn.Module):
         return nn.Module.__call__(self, *args, **kwargs)
 
 
-def build_expander(embed_dim: int, width: float = 2.0, **kwargs) -> MultiLayerPerceptron:
+def build_expander(embed_dim: int, width: float = 2.0, dropout: float = 0.0) -> MultiLayerPerceptron:
     """
     Build a multi-layer perceptron expander, which expands the input dimensionality for VICReg.
 
     Args:
         embed_dim: Input embedding dimension.
         width: Width multiplier for the hidden layers.
-        **kwargs: Additional arguments for the MultiLayerPerceptron.
+        dropout: Dropout rate.
 
     Returns:
         expander: Multi-layer perceptron expander.
@@ -79,7 +79,8 @@ def build_expander(embed_dim: int, width: float = 2.0, **kwargs) -> MultiLayerPe
         input_dim=embed_dim,
         hidden_dims=[expander_dim := int(embed_dim * width), expander_dim],
         output_dim=expander_dim,
-        **kwargs,
+        dropout=dropout,
+        norm_layer=nn.BatchNorm1d,
     )
 
 

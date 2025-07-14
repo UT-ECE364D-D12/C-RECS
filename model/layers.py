@@ -174,17 +174,25 @@ class MultiLayerPerceptron(nn.Module):
         input_dim: Input dimension.
         hidden_dims: List of the hidden dimensions.
         output_dim: Output dimension.
-        dropout: Dropout rate, optional.
+        dropout: Dropout rate.
+        norm_layer: Normalization layer class.
     """
 
-    def __init__(self, input_dim: int, hidden_dims: List[int], output_dim: int, dropout: float = 0.0) -> None:
+    def __init__(
+        self,
+        input_dim: int,
+        hidden_dims: List[int],
+        output_dim: int,
+        dropout: float = 0.0,
+        norm_layer: nn.Module = nn.LayerNorm,
+    ) -> None:
         super().__init__()
 
         layers = []
 
         for dim in hidden_dims:
             layers.append(nn.Linear(input_dim, dim))
-            layers.append(nn.LayerNorm(dim))
+            layers.append(norm_layer(dim))
             layers.append(nn.ReLU())
             layers.append(nn.Dropout(p=dropout))
 
