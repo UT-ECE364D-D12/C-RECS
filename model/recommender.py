@@ -37,13 +37,13 @@ class DeepFM(nn.Module):
 
     def forward(self, features: Tuple[List[Tensor], List[Tensor], Tensor]) -> Tensor:
         """
-        Predict the item ratings for the given user features, used during training.
+        Predict the item ratings for the given user features
 
         Args:
-            features (Tuple[List[Tensor], List[Tensor], Tensor]): User features, item features, and item IDs.
+            features: User features, item features, and item IDs.
 
         Returns:
-            ratings (Tensor): Predicted ratings.
+            ratings: Predicted ratings.
         """
 
         embeddings = self.embedding(features)
@@ -56,25 +56,31 @@ class DeepFM(nn.Module):
 
         return torch.sigmoid(linear_term + fm_term + mlp_term).squeeze(1)
 
-    def predict(self, features: Tuple[Tensor, Tensor]) -> Tensor:
+    @torch.no_grad()
+    def predict(self, features: Tuple[Tensor, Tensor], *, mask: bool = True) -> Tensor:
         """
         Predict the rating of every item for the given user features.
 
         Args:
-            features (Tuple[Tensor, Tensor]): User features and ratings.
+            features: User features and ratings.
+            mask: Whether to mask the predictions for items that the user has already rated.
 
         Returns:
-            ratings (Tensor): Predicted ratings.
+            ratings: Predicted ratings.
         """
 
         feature_ids, feature_ratings = features
 
-        with torch.no_grad():
-            item_ids = torch.arange(self.num_items, device=feature_ids.device)
-            feature_ids = feature_ids.repeat(self.num_items).split(len(feature_ids))
-            feature_ratings = feature_ratings.repeat(self.num_items).split(len(feature_ratings))
+        item_ids = torch.arange(self.num_items, device=feature_ids.device)
+        feature_ids = feature_ids.repeat(self.num_items).split(len(feature_ids))
+        feature_ratings = feature_ratings.repeat(self.num_items).split(len(feature_ratings))
 
-            return self.forward((feature_ids, feature_ratings, item_ids))
+        predicted_ratings = self.forward((feature_ids, feature_ratings, item_ids))
+
+        if mask:
+            predicted_ratings[feature_ids[0][1:]] = -1
+
+        return predicted_ratings
 
     @take_annotation_from(forward)
     def __call__(self, *args, **kwargs):

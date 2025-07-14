@@ -1,33 +1,32 @@
-from pathlib import Path
-
-import pandas as pd
-
-from utils.lr import CosineAnnealingWarmRestarts
-from utils.misc import suppress_warnings
-
-suppress_warnings()
-
 import os
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
-import random
+from utils.misc import suppress_warnings
 
+suppress_warnings()
+
+from pathlib import Path
+
+import pandas as pd
 import torch
 import yaml
 from torch import optim
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader
 
 import wandb
 from criterion.joint_criterion import JointCriterion
-from data.collaborative_dataset import CollaborativeDataset, collaborative_collate_fn
+from data.content_dataset import ContentDataset, content_collate_fn
+from data.recommender_dataset import UserRecommendationDataset, user_collate_fn
+from metrics.recommender_evaluator import RecommenderEvaluator
 from model.crecs import CRECS
 from model.encoder import build_classifier, build_expander
+from utils.lr import CosineAnnealingWarmRestarts
 from utils.misc import set_random_seed
 from utils.processor import train
 
 # Load arguments from config file
-args = yaml.safe_load(open("configs/collaborative.yaml", "r"))
+args = yaml.safe_load(open("configs/content.yaml", "r"))
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -36,33 +35,34 @@ set_random_seed(args["random_seed"])
 # Create datasets and dataloaders
 data_root = Path(args["data_root"])
 
-train_dataset = CollaborativeDataset(data_root / "train_ratings.parquet", data_root / "train_requests.csv")
-val_dataset = CollaborativeDataset(data_root / "val_ratings.parquet", data_root / "val_requests.csv")
-train_subset = Subset(train_dataset, random.sample(range(len(train_dataset)), k=len(val_dataset)))
+train_dataset = ContentDataset(data_root / "train_ratings.parquet", data_root / "descriptions.csv")
+val_dataset = ContentDataset(data_root / "val_ratings.parquet", data_root / "descriptions.csv")
+rec_eval_dataset = UserRecommendationDataset(data_root / "val_ratings.parquet", history_size=0.8)
 
 train_dataloader = DataLoader(
     train_dataset,
     batch_size=(batch_size := args["batch_size"]),
+    collate_fn=content_collate_fn,
     shuffle=True,
-    collate_fn=collaborative_collate_fn,
-    num_workers=8,
-    drop_last=True,
-)
-
-train_subset_dataloader = DataLoader(
-    train_subset,
-    batch_size=batch_size,
-    shuffle=False,
-    collate_fn=collaborative_collate_fn,
-    num_workers=8,
+    num_workers=0,
     drop_last=True,
 )
 
 val_dataloader = DataLoader(
     val_dataset,
     batch_size=batch_size,
-    collate_fn=collaborative_collate_fn,
-    num_workers=8,
+    collate_fn=content_collate_fn,
+    shuffle=False,
+    num_workers=0,
+    drop_last=True,
+)
+
+rec_eval_dataloader = DataLoader(
+    rec_eval_dataset,
+    batch_size=1,
+    collate_fn=user_collate_fn,
+    shuffle=False,
+    num_workers=0,
     drop_last=True,
 )
 
@@ -92,8 +92,13 @@ scheduler = CosineAnnealingWarmRestarts(optimizer=optimizer, **args["scheduler"]
 # Define the loss function
 criterion = JointCriterion(expander=expander, **args["criterion"])
 
+# Define the evaluation jobs
+rec_evaluator = RecommenderEvaluator(**args["evaluator"])
+
+eval_jobs = [(model.recommender, rec_evaluator, rec_eval_dataloader)]
+
 # Begin logging & training
-wandb.init(project="C-RECS", name=args["name"], tags=("Encoder", "Collaborative"), config=args)
+wandb.init(project="C-RECS", name=args["name"], tags=("Encoder", "Content"), config=args)
 
 train(
     model=model,
@@ -101,8 +106,8 @@ train(
     scheduler=scheduler,
     criterion=criterion,
     train_dataloader=train_dataloader,
-    train_subset_dataloader=train_subset_dataloader,
     val_dataloader=val_dataloader,
+    eval_jobs=eval_jobs,
     device=device,
     **args["train"],
 )

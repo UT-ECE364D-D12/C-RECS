@@ -21,8 +21,13 @@ class FeaturesEmbedding(nn.Module):
 
         self.num_items = num_items
 
+        # Embedding for every item a user can interact with (+1 for no interaction)
         self.feature_embedding = nn.Embedding(num_items + 1, embed_dim)
+
+        # Represent the the rating a user gives to an item as an embedding.
         self.rating_embedding = nn.Embedding(10, embed_dim)
+
+        # Embedding for every item
         self.item_embedding = nn.Embedding(num_items, embed_dim)
 
         self._initialize_weights()
@@ -43,6 +48,7 @@ class FeaturesEmbedding(nn.Module):
         # Embed user features
         num_features = [len(item_ids) for item_ids in feature_ids]
 
+        # Ratings are in the range [0.5, 5.0], we scale them to [0, 9] so that we can use them as indices for the rating embedding.
         rating_embeddings = self.rating_embedding(((torch.cat(feature_ratings) - 0.5) * 2).int().clamp(0, 9))
 
         user_embeddings: Tensor = self.feature_embedding(torch.cat(feature_ids)) * rating_embeddings
@@ -178,7 +184,7 @@ class MultiLayerPerceptron(nn.Module):
 
         for dim in hidden_dims:
             layers.append(nn.Linear(input_dim, dim))
-            layers.append(nn.BatchNorm1d(dim))
+            layers.append(nn.LayerNorm(dim))
             layers.append(nn.ReLU())
             layers.append(nn.Dropout(p=dropout))
 

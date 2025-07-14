@@ -1,4 +1,4 @@
-name: "54k Users"
+name: "LR Scheduler Faster Decay Shorter Warmup"
 random_seed: 42
 batch_size: 1024
 data_root: "/home/tdutton/datasets/crecs/ml-20m/"
@@ -10,8 +10,23 @@ recommender:
   weights: NULL
 
 optimizer:
-  lr: 0.001
-  weight_decay: 0.01
+  lr: 1.0e-3
+  weight_decay: 1.0e-2
+
+scheduler:
+  period: 6205
+  warmup_steps: 100
+  restart_decay: 0.7
+  min_lr:
+    recommender: 1.0e-4
+  max_lr:
+    recommender: 1.0e-3
   
 train:
-  max_epochs: 3
+  num_epochs: 5
+
+evaluator:
+  k:
+    - 10
+    - 20
+  threshold: 0.6
