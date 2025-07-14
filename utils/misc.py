@@ -13,6 +13,16 @@ P = ParamSpec("P")
 
 
 def take_annotation_from(this: Callable[P, T]) -> Callable[[Callable], Callable[P, T]]:
+    """
+    Decorator that copies docstring from one function to another.
+
+    Args:
+        this: Function to copy docstring from
+
+    Returns:
+        decorator: Decorator function that applies the docstring
+    """
+
     def decorator(real_function: Callable[P, T]) -> Callable[P, T]:
         real_function.__doc__ = this.__doc__
         return real_function
@@ -25,11 +35,11 @@ def send_to_device(object: Union[Tensor, Dict, List, Tuple], device: str = "cpu"
     Send all tensors in an object to a device.
 
     Args:
-        object (Union[Tensor, Dict, List, Tuple]): Object containing tensors.
-        device (str, optional): Device to send the tensors to.
+        object: Object containing tensors
+        device: Device to send tensors to
 
     Returns:
-        Union[Tensor, Dict, List, Tuple]: Object with tensors on the specified device.
+        result: Object with tensors on specified device
     """
 
     if isinstance(object, Tensor):
@@ -44,11 +54,14 @@ def send_to_device(object: Union[Tensor, Dict, List, Tuple], device: str = "cpu"
 
 def cosine_distance(x: Tensor, y: Tensor) -> Tensor:
     """
-    Returns the cosine distance between two tensors.
+    Compute cosine distance between two tensors.
 
     Args:
-        x (Tensor): First tensor.
-        y (Tensor): Second tensor.
+        x: First tensor
+        y: Second tensor
+
+    Returns:
+        distance: Cosine distance value
     """
 
     return 1 - torch.cosine_similarity(x, y)
@@ -56,12 +69,15 @@ def cosine_distance(x: Tensor, y: Tensor) -> Tensor:
 
 def pairwise_cosine_distance(x: Tensor, y: Tensor = None) -> Tensor:
     """
-    Returns the pairwise cosine distance between two tensors.
-    If y is None, it will return the pairwise cosine distance of x with itself.
+    Compute pairwise cosine distance between two tensors.
+    If y is None, computes pairwise cosine distance of x with itself.
 
     Args:
-        x (Tensor): First tensor.
-        y (Tensor, optional): Second tensor.
+        x: First tensor
+        y: Second tensor
+
+    Returns:
+        distances: Pairwise cosine distance matrix
     """
 
     return 1 - pairwise_cosine_similarity(x, y, zero_diagonal=False)
@@ -69,10 +85,10 @@ def pairwise_cosine_distance(x: Tensor, y: Tensor = None) -> Tensor:
 
 def set_random_seed(seed: int) -> None:
     """
-    Set the random seed for reproducibility.
+    Set random seed for reproducibility.
 
     Args:
-        seed (int): Random seed.
+        seed: Random seed value
     """
 
     random.seed(seed)
@@ -87,7 +103,7 @@ def set_random_seed(seed: int) -> None:
 
 def suppress_warnings() -> None:
     """
-    Suppress warnings to clean up the output.
+    Suppress warnings to clean up output.
     """
 
     import logging

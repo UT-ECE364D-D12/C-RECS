@@ -15,12 +15,12 @@ class EncoderCriterion(Criterion):
     Encoder criterion that computes the triplet, focal, variance, invariance, and covariance losses.
 
     Args:
-        expander (MultiLayerPerceptron): Expander to increase the dimensionality of the embeddings.
-        loss_weights (Dict[str, float]): Weights for each loss term, optional
-        triplet_margin (float): Margin for the triplet loss, optional
-        triplet_scale (float): Scaling factor for the triplet loss, optional
-        focal_gamma (float): Gamma parameter for the focal loss, optional
-        vicreg_gamma (float): Gamma parameter for the variance loss, optional
+        expander: Expander to increase dimensionality of embeddings
+        loss_weights: Weights for each loss term
+        triplet_margin: Margin for triplet loss
+        triplet_scale: Scaling factor for triplet loss
+        focal_gamma: Gamma parameter for focal loss
+        vicreg_gamma: Gamma parameter for variance loss
     """
 
     def __init__(
@@ -42,6 +42,17 @@ class EncoderCriterion(Criterion):
         self.loss_weights = loss_weights
 
     def forward(self, anchor: Anchor, positive: Positive, negative: Negative) -> Dict[str, Tensor]:
+        """
+        Compute all loss components and return a dictionary of losses.
+
+        Args:
+            anchor: Anchor embeddings, logits, and IDs
+            positive: Positive embeddings, logits, and IDs
+            negative: Negative embeddings, logits, and IDs
+
+        Returns:
+            losses: Dictionary of loss components including overall weighted loss
+        """
         # Unpack the triplets
         anchor_embeddings, anchor_logits, anchor_ids = anchor
         positive_embeddings, positive_logits, positive_ids = positive
@@ -95,7 +106,15 @@ class EncoderCriterion(Criterion):
 
     def _get_triplet_loss(self, anchor: Anchor, positive: Positive, negative: Negative) -> Tensor:
         """
-        Returns the triplet loss. Pulls the anchor and positive closer while pushing the negative away.
+        Compute triplet loss that pulls anchor and positive closer while pushing negative away.
+
+        Args:
+            anchor: Anchor embeddings, logits, and IDs
+            positive: Positive embeddings, logits, and IDs
+            negative: Negative embeddings, logits, and IDs
+
+        Returns:
+            triplet_loss: Triplet loss value
         """
 
         # Unpack
@@ -123,7 +142,14 @@ class EncoderCriterion(Criterion):
 
     def _get_focal_loss(self, prediction_logits: Tensor, target_labels: Tensor) -> Tensor:
         """
-        Returns the focal loss. Similar to cross-entropy loss but with a focus on hard examples.
+        Compute focal loss that focuses on hard examples.
+
+        Args:
+            prediction_logits: Model prediction logits
+            target_labels: Ground truth labels
+
+        Returns:
+            focal_loss: Focal loss value
         """
         prediction_probabilities = prediction_logits.softmax(dim=-1)
 
@@ -141,7 +167,13 @@ class EncoderCriterion(Criterion):
 
     def _get_variance_loss(self, embedding: Tensor) -> Tensor:
         """
-        Returns the variance loss. Pushes the embeddings to have high variance across the batch dimension.
+        Compute variance loss that pushes embeddings to have high variance across the batch dimension.
+
+        Args:
+            embedding: Input embeddings
+
+        Returns:
+            var_loss: Variance loss value
         """
         embedding = embedding - embedding.mean(dim=0)
 
@@ -153,13 +185,26 @@ class EncoderCriterion(Criterion):
 
     def _get_invariance_loss(self, anchor: Tensor, positive: Tensor) -> Tensor:
         """
-        Returns the invariance loss. Forces the representations of the same object to be similar.
+        Compute invariance loss that forces representations of the same object to be similar.
+
+        Args:
+            anchor: Anchor embeddings
+            positive: Positive embeddings
+
+        Returns:
+            invariance_loss: Invariance loss value
         """
         return F.mse_loss(anchor, positive)
 
     def _get_covariance_loss(self, x: Tensor) -> Tensor:
         """
-        Returns the covariance loss. Decorrelate the embeddings' dimensions, pushing the model to capture more information per dimension.
+        Compute covariance loss that decorrelates embedding dimensions to capture more information per dimension.
+
+        Args:
+            x: Input embeddings
+
+        Returns:
+            cov_loss: Covariance loss value
         """
         x = x - x.mean(dim=0)
 
@@ -172,12 +217,15 @@ class EncoderCriterion(Criterion):
 
 def masked_cross_entropy_loss(logits: Tensor, targets: Tensor, valid_mask: Tensor) -> Tensor:
     """
-    Returns the cross-entropy loss of the input while ignoring masked-out logits.
+    Compute cross-entropy loss while ignoring masked-out logits.
 
     Args:
-        logits (Tensor): Logits of the model.
-        targets (Tensor): Target labels.
-        valid_mask (Tensor): Mask to ignore invalid logits.
+        logits: Model prediction logits
+        targets: Target labels
+        valid_mask: Mask to ignore invalid logits
+
+    Returns:
+        loss: Cross-entropy loss value
     """
     # Mask out invalid logits so they don't affect the maximum value
     logits = logits.masked_fill(~valid_mask, -1e9)

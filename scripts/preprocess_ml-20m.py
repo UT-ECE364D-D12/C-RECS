@@ -22,12 +22,12 @@ def preprocess(
     samples a subset of users, and converts the ratings into a format suitable for training.
 
     Args:
-        data_root (Path): The root directory where the dataset is stored.
-        min_ratings_per_movie (int): Minimum number of ratings a movie must have to be included.
-        min_ratings_per_user (int): Minimum number of ratings a user must have to be included.
-        num_ratings_to_sample (int): Number of ratings to sample from the dataset.
-        train_size (float): Proportion of the users to include in the train split.
-        val_size (float): Proportion of the users to include in the validation split.
+        data_root: The root directory where the dataset is stored.
+        min_ratings_per_movie: Minimum number of ratings a movie must have to be included.
+        min_ratings_per_user: Minimum number of ratings a user must have to be included.
+        num_ratings_to_sample: Number of ratings to sample from the dataset.
+        train_size: Proportion of the users to include in the train split.
+        val_size: Proportion of the users to include in the validation split.
     """
 
     # Load movies and ratings data

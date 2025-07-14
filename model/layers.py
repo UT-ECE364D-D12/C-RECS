@@ -12,8 +12,8 @@ class FeaturesEmbedding(nn.Module):
     Embed user features and items.
 
     Args:
-        num_items (int): Number of items.
-        embed_dim (int): Embedding dimension.
+        num_items: Number of items.
+        embed_dim: Embedding dimension.
     """
 
     def __init__(self, num_items: int, embed_dim: int) -> None:
@@ -37,10 +37,10 @@ class FeaturesEmbedding(nn.Module):
         Forward pass of the embedding layer.
 
         Args:
-            features (Tuple[List[Tensor], List[Tensor], Tensor]): feature_ids, feature_ratings, item_ids
+            features: feature_ids, feature_ratings, item_ids
 
         Returns:
-            embeddings (Tensor): User and item embeddings of shape (batch_size, 2, embed_dim).
+            embeddings: User and item embeddings of shape (batch_size, 2, embed_dim).
         """
 
         feature_ids, feature_ratings, item_ids = features
@@ -79,8 +79,8 @@ class FeaturesLinear(nn.Module):
     Linear layer for user features and items.
 
     Args:
-        num_items (int): Number of items.
-        output_dim (int): Output dimension.
+        num_items: Number of items.
+        output_dim: Output dimension.
     """
 
     def __init__(self, num_items: int, output_dim: int) -> None:
@@ -100,10 +100,10 @@ class FeaturesLinear(nn.Module):
         Forward pass of the linear layer.
 
         Args:
-            features (Tuple[List[Tensor], List[Tensor], Tensor]): feature_ids, feature_ratings, item_ids
+            features: feature_ids, feature_ratings, item_ids
 
         Returns:
-            weights (Tensor): Combination of the user and item weights of shape (batch_size, output_dim).
+            weights: Combination of the user and item weights of shape (batch_size, output_dim).
         """
 
         feature_ids, feature_ratings, item_ids = features
@@ -150,7 +150,7 @@ class FactorizationMachine(torch.nn.Module):
         Forward pass of the Factorization Machine layer.
 
         Args:
-            embeddings (Tensor): Float tensor of size (batch_size, num_fields, embed_dim).
+            embeddings: Float tensor of size (batch_size, num_fields, embed_dim).
         """
 
         square_of_sum = torch.sum(embeddings, dim=1) ** 2
@@ -171,10 +171,10 @@ class MultiLayerPerceptron(nn.Module):
     Multi-layer perceptron.
 
     Args:
-        input_dim (int): Input dimension.
-        hidden_dims (List[int]): List of the hidden dimensions.
-        output_dim (int): Output dimension.
-        dropout (float): Dropout rate, optional.
+        input_dim: Input dimension.
+        hidden_dims: List of the hidden dimensions.
+        output_dim: Output dimension.
+        dropout: Dropout rate, optional.
     """
 
     def __init__(self, input_dim: int, hidden_dims: List[int], output_dim: int, dropout: float = 0.0) -> None:
@@ -201,10 +201,10 @@ class MultiLayerPerceptron(nn.Module):
         Forward pass of the multi-layer perceptron.
 
         Args:
-            x (Tensor): Input tensor of shape (batch_size, input_dim).
+            x: Input tensor of shape (batch_size, input_dim).
 
         Returns:
-            y (Tensor): Output tensor of shape (batch_size, output_dim).
+            y: Output tensor of shape (batch_size, output_dim).
         """
 
         return self.mlp(x)

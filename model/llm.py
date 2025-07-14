@@ -6,15 +6,15 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 def build_language_model(model_name: str = "google/gemma-7b-it", quantize: str = "8bit") -> tuple[AutoModelForCausalLM, AutoTokenizer]:
     """
-    Load, and potentially quantize, a language model.
+    Load and potentially quantize a language model.
 
     Args:
-        model_name (str): Pre-trained model name.
-        quantize (str): Quantization type, optional.
+        model_name: Pre-trained model name
+        quantize: Quantization type
 
     Returns:
-        model (AutoModelForCausalLM): Language model.
-        tokenizer (AutoTokenizer): Tokenizer.
+        model: Language model
+        tokenizer: Tokenizer
     """
 
     # If bitsandbytes is not installed, quantization is not possible.

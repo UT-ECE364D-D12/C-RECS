@@ -13,7 +13,7 @@ class JointCriterion(Criterion):
     A joint criterion that combines the recommender and encoder criteria.
 
     Args:
-        loss_weights: Weights for each loss term, optional
+        loss_weights: Weights for each loss term
     """
 
     def __init__(self, loss_weights: Dict[str, float] = {}, **kwargs) -> None:
@@ -30,6 +30,16 @@ class JointCriterion(Criterion):
         predictions: Tuple[Tensor, Anchor, Positive, Negative],
         rec_targets: Tensor,
     ) -> Dict[str, Tensor]:
+        """
+        Compute combined recommender and encoder losses.
+
+        Args:
+            predictions: Tuple containing recommendation predictions and triplet data
+            rec_targets: Ground truth ratings for recommendations
+
+        Returns:
+            losses: Dictionary containing all loss components and overall weighted loss
+        """
         rec_predictions, anchor, positive, negative = predictions
 
         recommender_losses = self.recommender_criterion(rec_predictions, rec_targets)

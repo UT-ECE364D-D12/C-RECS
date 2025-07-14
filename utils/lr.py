@@ -12,12 +12,12 @@ class CosineAnnealingWarmRestarts:
     during the warmup_steps. Then, it is decayed from max_lr to min_lr using a cosine annealing schedule.
 
     Args:
-        optimizer (optim.Optimizer): The optimizer to update the learning rates.
-        period (int): The number of steps per cycle.
-        min_lr (Union[float, List[float], Dict[str, float]]): The minimum learning rate for each parameter group.
-        max_lr (Union[float, List[float], Dict[str, float]]): The maximum learning rate for each parameter group.
-        warmup_steps (int, optional): The number of steps to linearly increase the learning rate.
-        restart_decay (float, optional): The factor to decay max_lr after each cycle.
+        optimizer: The optimizer to update the learning rates.
+        period: The number of steps per cycle.
+        min_lr: The minimum learning rate for each parameter group.
+        max_lr: The maximum learning rate for each parameter group.
+        warmup_steps: The number of steps to linearly increase the learning rate.
+        restart_decay: The factor to decay max_lr after each cycle.
     """
 
     def __init__(
@@ -53,7 +53,7 @@ class CosineAnnealingWarmRestarts:
         Update learning rates for all parameter groups.
 
         Returns:
-            Dict[str, float]: The learning rate for each parameter group.
+            lr_dict: Learning rate for each parameter group
         """
         lrs = self.get_lr()
         for param_group, lr in zip(self.optimizer.param_groups, lrs):
@@ -74,10 +74,10 @@ class CosineAnnealingWarmRestarts:
 
     def get_lr(self) -> List[float]:
         """
-        Calculate the learning rate for each parameter group.
+        Calculate learning rate for each parameter group.
 
         Returns:
-            List[float]: The learning rate for each parameter group.
+            learning_rates: Learning rate for each parameter group
         """
 
         lrs = []
@@ -97,11 +97,11 @@ class CosineAnnealingWarmRestarts:
         Convert a learning rate to a list of learning rates for each parameter group.
 
         Args:
-            lr (Union[float, List[float], Dict[str, float]]): The learning rate(s) to convert.
-            name (str): The name of the learning rate for error messages.
+            lr: The learning rate(s) to convert.
+            name: The name of the learning rate for error messages.
 
         Returns:
-            List[float]: A list of learning rates for each parameter group.
+            A list of learning rates for each parameter group.
         """
 
         if isinstance(lr, (int, float)):  # If lr is a single float, apply it to all parameter groups

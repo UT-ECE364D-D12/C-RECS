@@ -15,8 +15,8 @@ class CRECS(nn.Module):
     Conversational Recommender System.
 
     Args:
-        classifier (MultiLayerPerceptron): Classifier to predict items IDs, optional.
-        weights (str): Path to the model weights, optional.
+        classifier: Classifier to predict items IDs, optional.
+        weights: Path to the model weights, optional.
         **kwargs: Additional arguments for the Encoder, Recommender, and Classifier.
     """
 
@@ -78,15 +78,15 @@ class CRECS(nn.Module):
         Forward pass of the model used during collaborative training.
 
         Args:
-            rec_features (Tuple[List[Tensor], List[Tensor], Tensor]): User and item features.
-            anchors (Tuple[List[str], Tensor]): User requests and item IDs for the anchor.
-            negative_ids (Tensor): Negative item IDs.
+            rec_features: User and item features.
+            anchors: User requests and item IDs for the anchor.
+            negative_ids: Negative item IDs.
 
         Returns:
-            rec_predictions (Tensor): Predicted ratings for the positive items.
-            anchor (Tuple[Tensor, Tensor, Tensor]): Anchor request embeddings, logits, and IDs.
-            positive (Tuple[Tensor, Tensor, Tensor]): Positive item embeddings, logits, and IDs.
-            negative (Tuple[Tensor, Tensor, Tensor]): Negative item embeddings, logits, and IDs.
+            rec_predictions: Predicted ratings for the positive items.
+            anchor: Anchor request embeddings, logits, and IDs.
+            positive: Positive item embeddings, logits, and IDs.
+            negative: Negative item embeddings, logits, and IDs.
         """
 
         # Predict the ratings for the positive items
@@ -117,13 +117,13 @@ class CRECS(nn.Module):
         Predict how the user would rate the k items closest to the user request.
 
         Args:
-            rec_features (Tuple[Tensor, Tensor]): User features to predict the ratings.
-            request (str): User request, used to find relevant items if provided.
-            k (int): Optional cap on the number of items to return.
+            rec_features: User features to predict the ratings.
+            request: User request, used to find relevant items if provided.
+            k: Optional cap on the number of items to return.
 
         Returns:
-            item_ids (Tensor): IDs of the k items, sorted by relevance.
-            item_ratings (Tensor): Predicted ratings for the k items.
+            item_ids: IDs of the k items, sorted by relevance.
+            item_ratings: Predicted ratings for the k items.
         """
 
         # Predict the ratings for all items based on the user features
@@ -157,7 +157,7 @@ class CRECS(nn.Module):
         Load the model weights from a file.
 
         Args:
-            path (str): Path to the model weights.
+            path: Path to the model weights.
         """
 
         state_dict: Dict = torch.load(path, map_location="cpu", weights_only=True)

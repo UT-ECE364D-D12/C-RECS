@@ -13,8 +13,8 @@ class CollaborativeDataset(Dataset):
     Dataset for collaborative filtering.
 
     Args:
-        ratings (pd.DataFrame): The ratings dataframe.
-        requests (pd.DataFrame): The requests dataframe.
+        ratings: Ratings dataframe
+        requests: Requests dataframe
     """
 
     def __init__(self, ratings_path: Path, requests_path: Path) -> None:
@@ -34,15 +34,15 @@ class CollaborativeDataset(Dataset):
         Retrieves a collaborative filtering sample.
 
         Args:
-            idx (int): The index of the sample.
+            idx: Index of sample
 
         Returns:
-            feature_ids (Tensor): The feature item IDs.
-            feature_ratings (Tensor): The feature item ratings.
-            item_id (Tensor): The target item ID.
-            rating (Tensor): The target item rating.
-            anchor (Tuple[str, Tensor]): The anchor request and target item ID.
-            negative_item_id (Tensor): The negative item ID.
+            feature_ids: Feature item IDs
+            feature_ratings: Feature item ratings
+            item_id: Target item ID
+            rating: Target item rating
+            anchor: Anchor request and target item ID
+            negative_item_id: Negative item ID
         """
 
         feature_ids, feature_ratings, item_id, rating = self.ratings.iloc[idx][["feature_ids", "feature_ratings", "item_id", "rating"]]
@@ -70,13 +70,13 @@ def collaborative_collate_fn(
     Collates a batch of collaborative data.
 
     Args:
-        batch (List[Tuple[Tensor, Tensor, Tensor, Tensor, Tuple[str, int], int]]): The batch of data.
+        batch: Batch of data
 
     Returns:
-        rec_features (Tuple[List[Tensor], List[Tensor], Tensor]): User and item features.
-        rec_targets (Tensor): Target ratings.
-        anchors (Tuple[str, Tensor]): Anchor request and item ID.
-        negative_ids (Tensor): Negative item IDs.
+        rec_features: User and item features
+        rec_targets: Target ratings
+        anchors: Anchor request and item ID
+        negative_ids: Negative item IDs
     """
 
     # Unzip the batch

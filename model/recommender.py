@@ -15,11 +15,11 @@ class DeepFM(nn.Module):
     Reference: H Guo, et al. DeepFM: A Factorization-Machine based Neural Network for CTR Prediction, 2017.
 
     Args:
-        num_items (int): Number of items.
-        embed_dim (int): Dimension of the embeddings.
-        mlp_dims (List[int]): Dimensions of the MLP layers.
-        dropout (float): Dropout rate, optional.
-        weights (str): Path to the model weights, optional.
+        num_items: Number of items
+        embed_dim: Dimension of embeddings
+        mlp_dims: Dimensions of MLP layers
+        dropout: Dropout rate
+        weights: Path to model weights
     """
 
     def __init__(self, num_items: int, embed_dim: int, mlp_dims: List[int], dropout: float, weights: str = None) -> None:
@@ -37,13 +37,13 @@ class DeepFM(nn.Module):
 
     def forward(self, features: Tuple[List[Tensor], List[Tensor], Tensor]) -> Tensor:
         """
-        Predict the item ratings for the given user features
+        Predict item ratings for given user features.
 
         Args:
-            features: User features, item features, and item IDs.
+            features: User features, item features, and item IDs
 
         Returns:
-            ratings: Predicted ratings.
+            ratings: Predicted ratings
         """
 
         embeddings = self.embedding(features)
@@ -59,14 +59,14 @@ class DeepFM(nn.Module):
     @torch.no_grad()
     def predict(self, features: Tuple[Tensor, Tensor], *, mask: bool = True) -> Tensor:
         """
-        Predict the rating of every item for the given user features.
+        Predict rating of every item for given user features.
 
         Args:
-            features: User features and ratings.
-            mask: Whether to mask the predictions for items that the user has already rated.
+            features: User features and ratings
+            mask: Whether to mask predictions for items user has already rated
 
         Returns:
-            ratings: Predicted ratings.
+            ratings: Predicted ratings
         """
 
         feature_ids, feature_ratings = features

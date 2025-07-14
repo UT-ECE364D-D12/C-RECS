@@ -14,9 +14,9 @@ class SimulatorDataset(Dataset):
     Dataset for the user simulator.
 
     Args:
-        items (pd.DataFrame): The items dataframe.
-        tokenizer (AutoTokenizer): The tokenizer.
-        prompt_generators (List[Callable]): The prompt generators which generate prompts given an item title.
+        items: The items dataframe.
+        tokenizer: The tokenizer.
+        prompt_generators: The prompt generators which generate prompts given an item title.
     """
 
     def __init__(self, items: pd.DataFrame, tokenizer: AutoTokenizer, prompt_generators: List[PromptGenerator]) -> None:
@@ -32,12 +32,12 @@ class SimulatorDataset(Dataset):
         Retrieves an item and associated prompt.
 
         Args:
-            idx (int): The index of the item.
+            idx: The index of the item.
 
         Returns:
-            item_id (int): The item ID.
-            item_title (str): The item title.
-            prompt (str): The prompt.
+            item_id: The item ID.
+            item_title: The item title.
+            prompt: The prompt.
         """
 
         prompt_idx, item_idx = divmod(idx, len(self.items))
@@ -65,13 +65,13 @@ def simulate(
     Generate responses for a given prompt using a model.
 
     Args:
-        model (AutoModelForCausalLM): Language model.
-        tokenizer (AutoTokenizer): Tokenizer.
-        dataloader (DataLoader): The data to generate responses for.
-        max_length (int, optional): The maximum length of the generated response.
+        model: Language model.
+        tokenizer: Tokenizer.
+        dataloader: The data to generate responses for.
+        max_length: The maximum length of the generated response.
 
     Returns:
-        data (pd.DataFrame): The generated responses.
+        data: The generated responses.
     """
     data = pd.DataFrame(columns=["item_id", "item_title", "text"])
 

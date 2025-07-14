@@ -14,7 +14,7 @@ class Encoder(nn.Module):
     Sentence encoder using a pre-trained transformer model.
 
     Args:
-        model_name (str): Pre-trained model name, optional.
+        model_name: Pre-trained model name, optional.
         **kwargs: Additional arguments for the model.
     """
 
@@ -40,10 +40,10 @@ class Encoder(nn.Module):
         Encodes a list of requests into a tensor.
 
         Args:
-            requests (List[str]): List of requests.
+            requests: List of requests.
 
         Returns:
-            encoded_requests (Tensor): Encoded requests of shape (batch_size, embed_dim).
+            encoded_requests: Encoded requests of shape (batch_size, embed_dim).
         """
 
         device = self.model.device.__str__()
@@ -67,12 +67,12 @@ def build_expander(embed_dim: int, width: float = 2.0, **kwargs) -> MultiLayerPe
     Build a multi-layer perceptron expander, which expands the input dimensionality for VICReg.
 
     Args:
-        embed_dim (int): Input embedding dimension.
-        width (float): Width multiplier for the hidden layers.
+        embed_dim: Input embedding dimension.
+        width: Width multiplier for the hidden layers.
         **kwargs: Additional arguments for the MultiLayerPerceptron.
 
     Returns:
-        expander (MultiLayerPerceptron): Multi-layer perceptron expander.
+        expander: Multi-layer perceptron expander.
     """
 
     return MultiLayerPerceptron(
@@ -88,12 +88,12 @@ def build_classifier(embed_dim: int, num_classes: int, **kwargs) -> MultiLayerPe
     Build a multi-layer perceptron classifier, used to predict the item IDs from the embeddings during training.
 
     Args:
-        embed_dim (int): Input embedding dimension.
-        num_classes (int): Number of classes.
+        embed_dim: Input embedding dimension.
+        num_classes: Number of classes.
         **kwargs: Additional arguments for the MultiLayerPerceptron.
 
     Returns:
-        classifier (MultiLayerPerceptron): Multi-layer perceptron classifier.
+        classifier: Multi-layer perceptron classifier.
     """
 
     return MultiLayerPerceptron(

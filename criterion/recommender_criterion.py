@@ -11,7 +11,7 @@ class RecommenderCriterion(Criterion):
     Loss function for rating prediction models.
 
     Args:
-        loss_weights: Weights for each loss term, optional
+        loss_weights: Weights for each loss term
     """
 
     def __init__(self, loss_weights: Dict[str, float] = {}) -> None:
@@ -21,14 +21,14 @@ class RecommenderCriterion(Criterion):
 
     def forward(self, predictions: Tensor, targets: Tensor) -> Dict[str, Tensor]:
         """
-        Calculate the Mean Squared Error (MSE) loss between predictions and targets.
+        Calculate Mean Squared Error loss between predictions and targets.
 
         Args:
-            predictions: Predicted ratings.
-            targets: Ground truth ratings.
+            predictions: Predicted ratings
+            targets: Ground truth ratings
 
         Returns:
-            losses: Dictionary containing the MSE loss and overall loss.
+            losses: Dictionary containing MSE loss and overall loss
         """
 
         # Calculate the Mean Squared Error (MSE) loss

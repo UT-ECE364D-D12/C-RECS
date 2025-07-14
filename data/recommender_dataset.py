@@ -12,7 +12,7 @@ class RatingsRecommendationDataset(Dataset):
     Dataset for predicting ratings, used to train the recommender system.
 
     Args:
-        ratings_path (Path): The path to the ratings parquet file.
+        ratings_path: The path to the ratings parquet file.
     """
 
     def __init__(self, ratings_path: Path) -> None:
@@ -26,13 +26,13 @@ class RatingsRecommendationDataset(Dataset):
         Retrieves a ratings recommendation sample.
 
         Args:
-            idx (int): The index of the sample.
+            idx: The index of the sample.
 
         Returns:
-            feature_ids (Tensor): The feature item IDs.
-            feature_ratings (Tensor): The feature item ratings.
-            item_id (Tensor): The target item ID.
-            rating (Tensor): The target item rating.
+            feature_ids: The feature item IDs.
+            feature_ratings: The feature item ratings.
+            item_id: The target item ID.
+            rating: The target item rating.
         """
 
         feature_ids, feature_ratings, item, rating = self.ratings.iloc[idx][["feature_ids", "feature_ratings", "item_id", "rating"]]
@@ -50,11 +50,11 @@ def ratings_collate_fn(batch: List[Tuple[Tensor, Tensor, Tensor, Tensor]]) -> Tu
     Collates a batch of ratings recommendation data.
 
     Args:
-        batch (List[Tuple[Tensor, Tensor, Tensor, Tensor]]): The batch of data.
+        batch: The batch of data.
 
     Returns:
-        rec_features (Tuple[List[Tensor], List[Tensor], Tensor]): User and item features.
-        rec_targets (Tensor): Target ratings
+        rec_features: User and item features.
+        rec_targets: Target ratings
     """
     feature_ids, feature_ratings, target_ids, target_ratings = zip(*batch)
 
@@ -69,8 +69,8 @@ class UserRecommendationDataset(Dataset):
     Dataset for user-centric recommendations, used during evaluation to predict ratings for all items for a given user.
 
     Args:
-        ratings_path (Path): Path to the ratings parquet file.
-        history_size (float): Fraction of the user's features to use as history for the recommendations.
+        ratings_path: Path to the ratings parquet file.
+        history_size: Fraction of the user's features to use as history for the recommendations.
     """
 
     def __init__(
