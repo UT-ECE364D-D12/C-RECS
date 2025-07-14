@@ -1,7 +1,14 @@
-name: "LR Scheduler Faster Decay Shorter Warmup"
+name: "ml-20m_deepfm"
+training_mode: "Recommender"
 random_seed: 42
-batch_size: 1024
-data_root: "/home/tdutton/datasets/crecs/ml-20m/"
+
+data:
+  root: "/home/tdutton/datasets/crecs/ml-20m/"
+  batch_size: 1024
+  num_workers: 0
+
+train:
+  num_epochs: 3
 
 recommender:
   embed_dim: 768
@@ -9,21 +16,18 @@ recommender:
   dropout: 0.8
   weights: NULL
 
-optimizer:
-  lr: 1.0e-3
-  weight_decay: 1.0e-2
-
 scheduler:
-  period: 6205
+  period: 6000
   warmup_steps: 100
   restart_decay: 0.7
   min_lr:
     recommender: 1.0e-4
   max_lr:
     recommender: 1.0e-3
-  
-train:
-  num_epochs: 5
+
+optimizer:
+  lr: 1.0e-3
+  weight_decay: 1.0e-2
 
 evaluator:
   k:

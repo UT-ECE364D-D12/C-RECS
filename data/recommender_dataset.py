@@ -4,10 +4,10 @@ from typing import List, Tuple
 import pandas as pd
 import torch
 from torch import Tensor
-from torch.utils.data import Dataset
+from torch.utils.data import DataLoader, Dataset
 
 
-class RatingsRecommendationDataset(Dataset):
+class RecommenderDataset(Dataset):
     """
     Dataset for predicting ratings, used to train the recommender system.
 
@@ -45,7 +45,7 @@ class RatingsRecommendationDataset(Dataset):
         )
 
 
-def ratings_collate_fn(batch: List[Tuple[Tensor, Tensor, Tensor, Tensor]]) -> Tuple[Tuple[List[Tensor], List[Tensor], Tensor], Tensor]:
+def rec_collate_fn(batch: List[Tuple[Tensor, Tensor, Tensor, Tensor]]) -> Tuple[Tuple[List[Tensor], List[Tensor], Tensor], Tensor]:
     """
     Collates a batch of ratings recommendation data.
 
@@ -64,19 +64,56 @@ def ratings_collate_fn(batch: List[Tuple[Tensor, Tensor, Tensor, Tensor]]) -> Tu
     return features, targets
 
 
-class UserRecommendationDataset(Dataset):
+def build_rec_dataloaders(root: Path, batch_size: int, num_workers: int = 0) -> Tuple[DataLoader, DataLoader]:
+    """
+    Build training and validation datasets for recommender training.
+
+    Args:
+        root: Path to the root directory of the dataset.
+        batch_size: Batch size for the DataLoader.
+        num_workers: Number of worker threads for DataLoader.
+
+    Returns:
+        train_loader: DataLoader for training dataset.
+        val_loader: DataLoader for validation dataset.
+    """
+
+    train_dataset = RecommenderDataset(root / "train_ratings.parquet")
+
+    train_dataloader = DataLoader(
+        train_dataset,
+        collate_fn=rec_collate_fn,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+    )
+
+    val_dataset = RecommenderDataset(root / "val_ratings.parquet")
+
+    val_dataloader = DataLoader(
+        val_dataset,
+        collate_fn=rec_collate_fn,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+    )
+
+    return train_dataloader, val_dataloader
+
+
+class RecommenderEvalDataset(Dataset):
     """
     Dataset for user-centric recommendations, used during evaluation to predict ratings for all items for a given user.
 
     Args:
         ratings_path: Path to the ratings parquet file.
-        history_size: Fraction of the user's features to use as history for the recommendations.
+        history_frac: Fraction of the user's features to use as history for the recommendations.
     """
 
     def __init__(
         self,
         ratings_path: Path,
-        history_size: float = 0.8,
+        history_frac: float = 0.8,
     ) -> None:
 
         # Load & aggregate the ratings data by user
@@ -92,7 +129,7 @@ class UserRecommendationDataset(Dataset):
         }).reset_index()
         # fmt: on
 
-        self.history_size = history_size
+        self.history_frac = history_frac
 
     def __len__(self) -> int:
         return len(self.ratings)
@@ -101,7 +138,7 @@ class UserRecommendationDataset(Dataset):
         feature_ids, feature_ratings, items, ratings = self.ratings.iloc[idx][["feature_ids", "feature_ratings", "item_id", "rating"]]
 
         # Split into history and target slices
-        history_length = int(len(items) * self.history_size)
+        history_length = int(len(items) * self.history_frac)
 
         feature_ids = feature_ids[: history_length + 1]
         feature_ratings = feature_ratings[: history_length + 1]
@@ -116,7 +153,7 @@ class UserRecommendationDataset(Dataset):
         )
 
 
-def user_collate_fn(
+def rec_eval_collate_fn(
     batch: List[Tuple[Tensor, Tensor, Tensor, Tensor]],
 ) -> Tuple[Tuple[Tensor, Tensor], Tuple[Tensor, Tensor]]:
     """
@@ -139,3 +176,29 @@ def user_collate_fn(
     targets = (target_ids[0], target_ratings[0])
 
     return features, targets
+
+
+def build_rec_eval_dataloader(root: Path, history_frac: float = 0.8, num_workers: int = 0, **_) -> DataLoader:
+    """
+    Build the evaluation DataLoader for user-centric recommendations.
+
+    Args:
+        root: Path to the root directory of the dataset.
+        history_frac: Fraction of the user's features to use as history for the recommendations.
+        num_workers: Number of worker threads for DataLoader.
+
+    Returns:
+        eval_dataloader: DataLoader for evaluation dataset.
+    """
+
+    eval_dataset = RecommenderEvalDataset(root / "val_ratings.parquet", history_frac=history_frac)
+
+    eval_dataloader = DataLoader(
+        eval_dataset,
+        collate_fn=rec_eval_collate_fn,
+        batch_size=1,
+        shuffle=False,
+        num_workers=num_workers,
+    )
+
+    return eval_dataloader

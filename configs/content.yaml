@@ -1,7 +1,14 @@
-name: "ml-20m Generated Descriptions"
+name: "ml-20m_descriptions"
+training_mode: "Content"
 random_seed: 42
-batch_size: 128
-data_root: "/home/tdutton/datasets/crecs/ml-20m/"
+
+data:
+  root: "/home/tdutton/datasets/crecs/ml-20m/"
+  batch_size: 128
+  num_workers: 0
+
+train:
+  num_epochs: 3
 
 model:
   recommender:
@@ -16,7 +23,6 @@ model:
     mlp_dropout: 0.2
     attention_dropout: 0.2
 
-
 classifier:
   embed_dim: 768
   dropout: 0.0
@@ -24,26 +30,22 @@ classifier:
 expander:
   embed_dim: 768
   width: 2.0
-  dropout: 0.5
+  dropout: 0.0
 
-criterion:
-  triplet_scale: 20
-  focal_gamma: 0.75
-  vicreg_gamma: 1.0
-  loss_weights:
-    mse: 5.5
-    id: 3.2
-    triplet: 8.3
-    variance: 0.9
-    invariance: 0.75
-    covariance: 0.45
-
-evaluator:
-  k:
-    - 10
-    - 20
-  threshold: 0.6
-
+scheduler:
+  period: 10000
+  warmup_steps: 500
+  restart_decay: 1.0
+  min_lr:
+    encoder: 1.0e-5
+    classifier: 1.0e-5
+    expander: 1.0e-5
+    recommender: 1.0e-4
+  max_lr:
+    encoder: 1.0e-4
+    classifier: 1.0e-4
+    expander: 1.0e-4
+    recommender: 1.0e-3
 
 optimizer:
   all:
@@ -51,28 +53,28 @@ optimizer:
     betas: [0.9, 0.98]
     eps: 1.0e-6
   encoder:
-    weight_decay: 0.05
+    weight_decay: 1.0e-2
   classifier:
-    weight_decay: 0.05
+    weight_decay: 1.0e-2
   expander:
-    weight_decay: 0.01
+    weight_decay: 1.0e-2
   recommender:
-    weight_decay: 0.1
+    weight_decay: 1.0e-2
 
-scheduler:
-  period: 10885
-  warmup_steps: 500
-  restart_decay: 0.7
-  min_lr:
-    encoder: 1.0e-6
-    classifier: 1.0e-5
-    expander: 1.0e-5
-    recommender: 1.0e-5
-  max_lr:
-    encoder: 1.0e-4
-    classifier: 1.0e-4
-    expander: 1.0e-4
-    recommender: 1.0e-4
+criterion:
+  triplet_scale: 20
+  focal_gamma: 0.0
+  vicreg_gamma: 1.0
+  loss_weights:
+    mse: 5.0
+    id: 5.0
+    triplet: 0.0
+    variance: 0.0
+    invariance: 0.0
+    covariance: 0.0
 
-train:
-  num_epochs: 3
+evaluator:
+  k:
+    - 10
+    - 20
+  threshold: 0.6

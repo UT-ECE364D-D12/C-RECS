@@ -5,7 +5,7 @@ from typing import List, Tuple
 import pandas as pd
 import torch
 from torch import Tensor
-from torch.utils.data import Dataset
+from torch.utils.data import DataLoader, Dataset
 
 
 class ContentDataset(Dataset):
@@ -97,3 +97,44 @@ def content_collate_fn(
     negatives = (negative_descriptions, torch.stack(negative_ids))
 
     return (rec_features, positives, negatives), rec_targets
+
+
+def build_content_dataloaders(root: Path, batch_size: int, num_workers: int = 0) -> Tuple[DataLoader, DataLoader]:
+    """
+    Build training and validation datasets for content-based training.
+
+    Args:
+        root: Path to the root directory of the dataset.
+        batch_size: Batch size for the DataLoader.
+        num_workers: Number of worker threads for DataLoader.
+
+    Returns:
+        train_loader: DataLoader for training dataset.
+        val_loader: DataLoader for validation dataset.
+    """
+
+    train_dataset = ContentDataset(root / "train_ratings.parquet", root / "descriptions.csv")
+
+    train_dataloader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        collate_fn=content_collate_fn,
+        shuffle=True,
+        drop_last=True,
+        num_workers=num_workers,
+    )
+
+    # Use the same descriptions for validation because we care about
+    # the performance of the recommender system, not the encoder.
+    val_dataset = ContentDataset(root / "val_ratings.parquet", root / "descriptions.csv")
+
+    val_dataloader = DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        collate_fn=content_collate_fn,
+        shuffle=False,
+        drop_last=True,
+        num_workers=num_workers,
+    )
+
+    return train_dataloader, val_dataloader
