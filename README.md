@@ -27,7 +27,12 @@ conda activate crecs
 conda env create -f environments/aarch64.yaml
 ```
 
-2. Build [bitsandbytes](https://huggingface.co/docs/bitsandbytes/en/installation) from source:
+2. Activate the environment:
+```bash
+conda activate crecs 
+```
+
+3. Build [bitsandbytes](https://huggingface.co/docs/bitsandbytes/en/installation) from source:
 ```bash
 git clone https://github.com/bitsandbytes-foundation/bitsandbytes.git && cd bitsandbytes/
 cmake -DCOMPUTE_BACKEND=cuda -S .
@@ -36,11 +41,6 @@ pip install  .
 ```
 
 > **_NOTE:_**  If cmake does not recognize CUDA you may need to specify its location with `-DCMAKE_CUDA_COMPILER=<path_to_cuda_bin>`
-
-3. Activate the environment:
-```bash
-conda activate crecs 
-```
 
 ## Data
 
@@ -53,7 +53,7 @@ This repository uses [MovieLens](https://grouplens.org/datasets/movielens/), a d
 
 2. Preprocess the data:
 ```bash
-python scripts/preprocess_ml-20m.py <data_root>
+python preprocess/preprocess_ml-20m.py <data_root>
 ```
 
 ## Training
@@ -78,7 +78,7 @@ To train the recommender by itself:
 
 2. Train the recommender:
 ```bash
-python train_recommender.py
+python train.py --config configs/recommender.yaml
 ```
 
 ### Collaborative Filtering
@@ -95,23 +95,4 @@ python scripts/simulate_ml-20m.py <data_root> --mode=requests
 3. Train the encoder & recommender:
 ```bash
 python train_collaborative.py
-```
-
-## App
-
-1. Install the required packages for the app frontend:
-```bash
-cd app/frontend
-npm install
-``` 
-
-2. Start the backend:
-```bash
-python app/backend/app.py
-```
-
-3. In a seperate terminal, start the frontend:
-```bash
-cd app/frontend
-npm start
 ```
