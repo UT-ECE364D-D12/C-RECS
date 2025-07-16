@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
 import torch
@@ -29,7 +29,7 @@ def train(
     val_dataloader: DataLoader,
     eval_jobs: List[EvaluationJob],
     num_epochs: int,
-    output_dir: str = "weights/collaborative",
+    output_dir: Union[str, Path],
     max_grad_norm: float = None,
     **kwargs: Dict[str, any],
 ) -> None:
@@ -51,8 +51,11 @@ def train(
             verbose: Whether to log the training progress.
     """
 
+    if isinstance(output_dir, str):
+        output_dir = Path(output_dir)
+
     # Ensure the output directory exists
-    os.makedirs(output_dir, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     best_loss = float("inf")
 
@@ -71,13 +74,15 @@ def train(
             wandb.log({"Validation": {"Metrics": metrics}}, step=wandb.run.step)
 
         # Update the latest and best model weights
-        torch.save(model.state_dict(), os.path.join(output_dir, "last.pt"))
+        print(f"Saving model at epoch {epoch + 1} to {output_dir / 'last.pt'}")
+        torch.save(model.state_dict(), output_dir / "last.pt")
 
         # TODO: Save based on metrics - maybe have a parameter to choose metric & fall back to loss
         if val_losses["overall"] < best_loss:
             best_loss = val_losses["overall"]
 
-            torch.save(model.state_dict(), os.path.join(output_dir, "best.pt"))
+            print(f"Saving model at epoch {epoch + 1} to {output_dir / 'best.pt'}")
+            torch.save(model.state_dict(), output_dir / "best.pt")
 
 
 def train_one_epoch(
