@@ -62,8 +62,8 @@ class RecommenderEvaluator(Evaluator):
         for k, recall, n in zip(self.k, self.recall, self.recall_n):
             metrics[f"recall@{k}"] = recall * 100.0 / n if n > 0 else 0.0
 
-        for k, ndcg, ndcg_n in zip(self.k, self.ndcg, self.ndcg_n):
-            metrics[f"ndcg@{k}"] = ndcg * 100.0 / ndcg_n if ndcg_n > 0 else 0.0
+        for k, ndcg, n in zip(self.k, self.ndcg, self.ndcg_n):
+            metrics[f"ndcg@{k}"] = ndcg * 100.0 / n if n > 0 else 0.0
 
         return metrics
 

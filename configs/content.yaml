@@ -9,6 +9,7 @@ data:
 
 train:
   num_epochs: 3
+  output_dir: "weights/content"
 
 model:
   recommender:

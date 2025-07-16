@@ -30,7 +30,13 @@ class DeepFM(nn.Module):
         self.embedding = FeaturesEmbedding(num_items, embed_dim)
         self.linear = FeaturesLinear(num_items, output_dim=1)
         self.fm = FactorizationMachine()
-        self.mlp = MultiLayerPerceptron(input_dim=2 * embed_dim, hidden_dims=mlp_dims, output_dim=1, dropout=dropout)
+        self.mlp = MultiLayerPerceptron(
+            input_dim=2 * embed_dim,
+            hidden_dims=mlp_dims,
+            output_dim=1,
+            dropout=dropout,
+            norm_layer=nn.BatchNorm1d,
+        )
 
         if weights is not None:
             self.load_state_dict(torch.load(weights, weights_only=True))
