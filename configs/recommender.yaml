@@ -1,4 +1,4 @@
-name: "ml-20m_deepfm_batch-norm"
+name: "ml-20m_deepfm_batch-norm_larger-lr"
 training_mode: "Recommender"
 random_seed: 42
 
@@ -22,12 +22,11 @@ scheduler:
   warmup_steps: 100
   restart_decay: 0.7
   min_lr:
-    recommender: 1.0e-4
+    recommender: 5.0e-4
   max_lr:
-    recommender: 1.0e-3
+    recommender: 5.0e-3
 
 optimizer:
-  lr: 1.0e-3
   weight_decay: 1.0e-2
 
 evaluator:

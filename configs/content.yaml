@@ -5,10 +5,10 @@ random_seed: 42
 data:
   root: "/home/tdutton/datasets/crecs/ml-20m/"
   batch_size: 128
-  num_workers: 0
+  num_workers: 4
 
 train:
-  num_epochs: 3
+  num_epochs: 5
   output_dir: "weights/content"
 
 model:
@@ -39,14 +39,14 @@ scheduler:
   restart_decay: 1.0
   min_lr:
     encoder: 1.0e-5
-    classifier: 1.0e-5
+    classifier: 5.0e-5
     expander: 1.0e-5
-    recommender: 1.0e-4
+    recommender: 5.0e-4
   max_lr:
     encoder: 1.0e-4
-    classifier: 1.0e-4
+    classifier: 5.0e-4
     expander: 1.0e-4
-    recommender: 1.0e-3
+    recommender: 5.0e-3
 
 optimizer:
   all:
@@ -64,12 +64,12 @@ optimizer:
 
 criterion:
   triplet_scale: 20
-  focal_gamma: 0.0
+  focal_gamma: 1.0
   vicreg_gamma: 1.0
   loss_weights:
-    mse: 5.0
-    id: 5.0
-    triplet: 0.0
+    mse: 1.0
+    id: 1.0
+    triplet: 0.1
     variance: 0.0
     invariance: 0.0
     covariance: 0.0
