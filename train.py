@@ -1,3 +1,7 @@
+import os
+
+os.environ["TOKENIZERS_PARALLELISM"] = "true"
+
 from utils.misc import suppress_warnings
 
 suppress_warnings()
