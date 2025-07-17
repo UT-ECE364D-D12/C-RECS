@@ -80,7 +80,6 @@ def build_expander(embed_dim: int, width: float = 2.0, dropout: float = 0.0) -> 
         hidden_dims=[expander_dim := int(embed_dim * width), expander_dim],
         output_dim=expander_dim,
         dropout=dropout,
-        norm_layer=nn.BatchNorm1d,
     )
 
 

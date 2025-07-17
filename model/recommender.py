@@ -35,7 +35,6 @@ class DeepFM(nn.Module):
             hidden_dims=mlp_dims,
             output_dim=1,
             dropout=dropout,
-            norm_layer=nn.BatchNorm1d,
         )
 
         if weights is not None:

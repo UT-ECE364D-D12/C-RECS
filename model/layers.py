@@ -184,7 +184,7 @@ class MultiLayerPerceptron(nn.Module):
         hidden_dims: List[int],
         output_dim: int,
         dropout: float = 0.0,
-        norm_layer: nn.Module = nn.LayerNorm,
+        norm_layer: nn.Module = nn.BatchNorm1d,
     ) -> None:
         super().__init__()
 
